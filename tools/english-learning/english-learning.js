@@ -186,7 +186,7 @@ async function fetchToday() {
 
 async function generateArticle() {
   setBusy(generateButton, true, "正在生成...");
-  setMessage("正在调用 ChatGPT 生成文章，慢网下请保持页面打开。");
+  setMessage("正在调用 Gemini 生成文章，慢网下请保持页面打开。");
 
   try {
     const response = await fetch("/api/english/generate", {

@@ -1,19 +1,7 @@
 import { getTodayLearningData, isEnglishAuthorized, json, saveEnglishRecord } from "../_shared/english.js";
 
 function getOutputText(data) {
-  if (typeof data.output_text === "string") {
-    return data.output_text;
-  }
-
-  for (const item of data.output || []) {
-    for (const content of item.content || []) {
-      if (content.type === "output_text" && typeof content.text === "string") {
-        return content.text;
-      }
-    }
-  }
-
-  return "";
+  return data.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("") || "";
 }
 
 function parseModelJson(text) {
@@ -26,8 +14,8 @@ function parseModelJson(text) {
 }
 
 async function generateArticle(env, learningData) {
-  if (!env.OPENAI_API_KEY) {
-    throw new Error("missing_openai_api_key");
+  if (!env.GEMINI_API_KEY) {
+    throw new Error("missing_gemini_api_key");
   }
 
   if (!learningData.unfamiliarItems.length) {
@@ -84,22 +72,23 @@ Requirements:
     required: ["title", "topic", "difficulty", "article", "used_words", "highlight_words", "chinese_summary"],
   };
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const model = env.GEMINI_MODEL || "gemini-2.5-flash";
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
     headers: {
-      authorization: `Bearer ${env.OPENAI_API_KEY}`,
+      "x-goog-api-key": env.GEMINI_API_KEY,
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: env.OPENAI_MODEL || "gpt-4.1-mini",
-      input: prompt,
-      text: {
-        format: {
-          type: "json_schema",
-          name: "english_learning_article",
-          strict: true,
-          schema,
+      contents: [
+        {
+          parts: [{ text: prompt }],
         },
+      ],
+      generationConfig: {
+        temperature: 0.75,
+        responseMimeType: "application/json",
+        responseJsonSchema: schema,
       },
     }),
   });
@@ -107,7 +96,7 @@ Requirements:
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data?.error?.message || "openai_failed");
+    throw new Error(data?.error?.message || "gemini_failed");
   }
 
   const parsed = parseModelJson(getOutputText(data));
