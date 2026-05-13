@@ -13,6 +13,85 @@ function parseModelJson(text) {
   }
 }
 
+class RateLimitError extends Error {
+  constructor(detail) {
+    super("generation_rate_limited");
+    this.detail = detail;
+  }
+}
+
+function getGenerationWindow(now = new Date()) {
+  const hour = 1000 * 60 * 60;
+  const shifted = new Date(now.getTime() + 8 * hour - 4 * hour);
+  const dayStartMs = Date.UTC(
+    shifted.getUTCFullYear(),
+    shifted.getUTCMonth(),
+    shifted.getUTCDate(),
+    -4,
+    0,
+    0,
+    0,
+  );
+
+  return {
+    dayStartMs,
+    dayEndMs: dayStartMs + 24 * hour,
+    twoHourStartMs: now.getTime() - 2 * hour,
+  };
+}
+
+async function getSuccessfulGenerationTimes(env) {
+  const saved = await env.STATS.get("english-generation-limit", "json");
+  const savedTimes = Array.isArray(saved?.timestamps) ? saved.timestamps : [];
+  const articleList = await env.STATS.list({ prefix: "english-article:", limit: 200 });
+  const articleRecords = await Promise.all(
+    articleList.keys.map((key) => env.STATS.get(key.name, "json")),
+  );
+  const articleTimes = articleRecords
+    .filter((record) => record?.ok === true && record.createdAt)
+    .map((record) => record.createdAt);
+
+  return [...new Set([...savedTimes, ...articleTimes])]
+    .map((value) => new Date(value).getTime())
+    .filter(Number.isFinite);
+}
+
+async function assertGenerationAllowed(env, now = new Date()) {
+  if (!env.STATS) {
+    throw new Error("missing_stats_binding");
+  }
+
+  const limitStartsAt = Date.parse(env.ENGLISH_GENERATION_LIMIT_START || "2026-05-14T20:00:00.000Z");
+
+  if (now.getTime() < limitStartsAt) {
+    return;
+  }
+
+  const times = await getSuccessfulGenerationTimes(env);
+  const { dayStartMs, dayEndMs, twoHourStartMs } = getGenerationWindow(now);
+  const recentTwoHours = times.filter((time) => time >= twoHourStartMs && time <= now.getTime());
+  const todayWindow = times.filter((time) => time >= dayStartMs && time < dayEndMs);
+
+  if (recentTwoHours.length >= 1) {
+    throw new RateLimitError("最近 2 小时已经生成过文章，请稍后再试。");
+  }
+
+  if (todayWindow.length >= 3) {
+    throw new RateLimitError("今天 04:00 到明天 04:00 的生成次数已经达到上限 3 次。");
+  }
+}
+
+async function recordGenerationSuccess(env, createdAt) {
+  const times = await getSuccessfulGenerationTimes(env);
+  const cutoff = Date.now() - 1000 * 60 * 60 * 48;
+  const timestamps = [...times, new Date(createdAt).getTime()]
+    .filter((time) => Number.isFinite(time) && time >= cutoff)
+    .sort((a, b) => a - b)
+    .map((time) => new Date(time).toISOString());
+
+  await env.STATS.put("english-generation-limit", JSON.stringify({ timestamps }));
+}
+
 async function generateArticle(env, learningData) {
   if (!env.DEEPSEEK_API_KEY) {
     throw new Error("missing_deepseek_api_key");
@@ -114,7 +193,7 @@ Requirements:
   };
 
   const baseUrl = (env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, "");
-  const model = env.DEEPSEEK_MODEL || "deepseek-reasoner";
+  const model = env.DEEPSEEK_MODEL || "deepseek-v4-flash";
   const body = {
     model,
     response_format: {
@@ -133,7 +212,7 @@ Requirements:
     ],
   };
 
-  if (model.includes("v4")) {
+  if (model.includes("v4") && !model.includes("flash")) {
     body.thinking = { type: "enabled" };
     body.reasoning_effort = "high";
   }
@@ -172,6 +251,7 @@ export async function onRequestPost({ request, env }) {
   const id = crypto.randomUUID();
 
   try {
+    await assertGenerationAllowed(env);
     const learningData = await getTodayLearningData(env);
     const generated = await generateArticle(env, learningData);
     const record = {
@@ -198,6 +278,7 @@ export async function onRequestPost({ request, env }) {
 
     await env.STATS.put(`english-article:${createdAt}:${id}`, JSON.stringify(record));
     await env.STATS.put("english-latest", JSON.stringify(record));
+    await recordGenerationSuccess(env, createdAt);
 
     return json({ ok: true, article: record });
   } catch (error) {
@@ -208,6 +289,10 @@ export async function onRequestPost({ request, env }) {
       ok: false,
       error: String(error?.message || error).slice(0, 400),
     });
+
+    if (error instanceof RateLimitError) {
+      return json({ ok: false, error: "rate_limited", detail: error.detail }, { status: 429 });
+    }
 
     return json({ ok: false, error: "generate_failed", detail: "生成服务暂时不可用，请稍后再试。" }, { status: 500 });
   }
