@@ -20,6 +20,31 @@ class RateLimitError extends Error {
   }
 }
 
+function getModeConfig(mode) {
+  const configs = {
+    fast: {
+      key: "fast",
+      label: "快速",
+      model: "deepseek-v4-flash",
+      thinking: false,
+    },
+    standard: {
+      key: "standard",
+      label: "标准",
+      model: "deepseek-v4-pro",
+      thinking: false,
+    },
+    thinking: {
+      key: "thinking",
+      label: "思考",
+      model: "deepseek-v4-pro",
+      thinking: true,
+    },
+  };
+
+  return configs[mode] || configs.fast;
+}
+
 function getGenerationWindow(now = new Date()) {
   const hour = 1000 * 60 * 60;
   const shifted = new Date(now.getTime() + 8 * hour - 4 * hour);
@@ -92,11 +117,12 @@ async function recordGenerationSuccess(env, createdAt) {
   await env.STATS.put("english-generation-limit", JSON.stringify({ timestamps }));
 }
 
-async function generateArticle(env, learningData) {
+async function generateArticle(env, learningData, mode = "fast") {
   if (!env.DEEPSEEK_API_KEY) {
     throw new Error("missing_deepseek_api_key");
   }
 
+  const config = getModeConfig(mode);
   const words = learningData.unfamiliarItems.map((item) => ({
     word: item.voc_spelling,
     response: item.first_response,
@@ -193,9 +219,8 @@ Requirements:
   };
 
   const baseUrl = (env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, "");
-  const model = env.DEEPSEEK_MODEL || "deepseek-v4-flash";
   const body = {
-    model,
+    model: config.model,
     response_format: {
       type: "json_object",
     },
@@ -212,7 +237,7 @@ Requirements:
     ],
   };
 
-  if (model.includes("v4") && !model.includes("flash")) {
+  if (config.thinking) {
     body.thinking = { type: "enabled" };
     body.reasoning_effort = "high";
   }
@@ -242,21 +267,38 @@ Requirements:
   return parsed;
 }
 
-export async function onRequestPost({ request, env }) {
-  if (!(await isEnglishAuthorized(request, env))) {
-    return json({ ok: false }, { status: 401 });
-  }
-
+async function runGenerationJob(env, jobId, modeConfig, ip) {
   const createdAt = new Date().toISOString();
-  const id = crypto.randomUUID();
-
   try {
-    await assertGenerationAllowed(env);
+    await env.STATS.put(`english-job:${jobId}`, JSON.stringify({
+      id: jobId,
+      status: "running",
+      mode: modeConfig.key,
+      modeLabel: modeConfig.label,
+      createdAt,
+      updatedAt: createdAt,
+      message: "正在读取今日学习数据",
+    }));
+
     const learningData = await getTodayLearningData(env);
-    const generated = await generateArticle(env, learningData);
+
+    await env.STATS.put(`english-job:${jobId}`, JSON.stringify({
+      id: jobId,
+      status: "running",
+      mode: modeConfig.key,
+      modeLabel: modeConfig.label,
+      createdAt,
+      updatedAt: new Date().toISOString(),
+      message: "正在生成文章、题目和解析",
+    }));
+
+    const generated = await generateArticle(env, learningData, modeConfig.key);
     const record = {
-      id,
+      id: jobId,
       type: "article",
+      mode: modeConfig.key,
+      modeLabel: modeConfig.label,
+      model: modeConfig.model,
       createdAt,
       ok: true,
       progress: learningData.progress,
@@ -269,23 +311,91 @@ export async function onRequestPost({ request, env }) {
         order: item.order,
       })),
       generated,
-      ip: request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "",
+      ip,
     };
 
-    if (!env.STATS) {
-      return json({ ok: false, error: "missing_stats_binding" }, { status: 500 });
-    }
-
-    await env.STATS.put(`english-article:${createdAt}:${id}`, JSON.stringify(record));
+    await env.STATS.put(`english-article:${createdAt}:${jobId}`, JSON.stringify(record));
     await env.STATS.put("english-latest", JSON.stringify(record));
     await recordGenerationSuccess(env, createdAt);
-
-    return json({ ok: true, article: record });
+    await env.STATS.put(`english-job:${jobId}`, JSON.stringify({
+      id: jobId,
+      status: "done",
+      mode: modeConfig.key,
+      modeLabel: modeConfig.label,
+      createdAt,
+      updatedAt: new Date().toISOString(),
+      message: "生成完成",
+      article: record,
+    }));
   } catch (error) {
+    await saveEnglishRecord(env, "article", {
+      id: jobId,
+      type: "article",
+      createdAt,
+      ok: false,
+      error: String(error?.message || error).slice(0, 400),
+    });
+    await env.STATS.put(`english-job:${jobId}`, JSON.stringify({
+      id: jobId,
+      status: "failed",
+      mode: modeConfig.key,
+      modeLabel: modeConfig.label,
+      createdAt,
+      updatedAt: new Date().toISOString(),
+      message: "生成失败，请稍后再试",
+      error: String(error?.message || error).slice(0, 300),
+    }));
+  }
+}
+
+export async function onRequestPost({ request, env, waitUntil }) {
+  if (!(await isEnglishAuthorized(request, env))) {
+    return json({ ok: false }, { status: 401 });
+  }
+
+  if (!env.STATS) {
+    return json({ ok: false, error: "missing_stats_binding" }, { status: 500 });
+  }
+
+  let requestBody = {};
+
+  try {
+    try {
+      requestBody = await request.json();
+    } catch {
+      requestBody = {};
+    }
+
+    const modeConfig = getModeConfig(requestBody.mode);
+    const jobId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const ip = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "";
+    await assertGenerationAllowed(env);
+    await env.STATS.put(`english-job:${jobId}`, JSON.stringify({
+      id: jobId,
+      status: "queued",
+      mode: modeConfig.key,
+      modeLabel: modeConfig.label,
+      createdAt: now,
+      updatedAt: now,
+      message: "生成任务已开始",
+    }));
+
+    const task = runGenerationJob(env, jobId, modeConfig, ip);
+
+    if (typeof waitUntil === "function") {
+      waitUntil(task);
+    } else {
+      task.catch(() => {});
+    }
+
+    return json({ ok: true, pending: true, jobId, mode: modeConfig.key, modeLabel: modeConfig.label }, { status: 202 });
+  } catch (error) {
+    const id = crypto.randomUUID();
     await saveEnglishRecord(env, "article", {
       id,
       type: "article",
-      createdAt,
+      createdAt: new Date().toISOString(),
       ok: false,
       error: String(error?.message || error).slice(0, 400),
     });

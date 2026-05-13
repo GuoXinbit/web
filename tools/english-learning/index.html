@@ -8,8 +8,8 @@
       content="基于墨墨背单词今日学习记录生成英语阅读文章，适配手机、平板和电脑。"
     />
     <title>英语学习文章生成器 - Hacker666 Tools</title>
-    <link rel="preload" href="../../styles.css?v=20260514-1" as="style" />
-    <link rel="stylesheet" href="../../styles.css?v=20260514-1" />
+    <link rel="preload" href="../../styles.css?v=20260514-2" as="style" />
+    <link rel="stylesheet" href="../../styles.css?v=20260514-2" />
   </head>
   <body class="english-body">
     <main class="english-shell">
@@ -39,6 +39,20 @@
           </div>
           <div class="english-actions">
             <button class="secondary-button" type="button" data-fetch-today>获取学习进度和新单词</button>
+            <div class="mode-switch" role="radiogroup" aria-label="生成模式">
+              <label>
+                <input type="radio" name="generate-mode" value="fast" checked />
+                <span>快速</span>
+              </label>
+              <label>
+                <input type="radio" name="generate-mode" value="standard" />
+                <span>标准</span>
+              </label>
+              <label>
+                <input type="radio" name="generate-mode" value="thinking" />
+                <span>思考</span>
+              </label>
+            </div>
             <button class="primary-button" type="button" data-generate>生成文章与题目</button>
           </div>
         </header>
@@ -63,6 +77,15 @@
         </section>
 
         <p class="notice" data-message>进入后会自动加载最近生成的文章。需要新内容时先获取今日数据，再生成文章。</p>
+        <div class="generation-status is-hidden" data-generation-status aria-live="polite">
+          <div>
+            <strong data-generation-title>准备生成</strong>
+            <span data-generation-detail>请选择生成模式后开始。</span>
+          </div>
+          <div class="generation-progress" aria-hidden="true">
+            <span data-generation-bar></span>
+          </div>
+        </div>
 
         <section class="english-layout">
           <article class="article-stage" data-article-stage>
@@ -104,8 +127,8 @@
       <span data-popover-note></span>
     </div>
 
-    <script src="../../analytics.js?v=20260514-1" defer></script>
-    <script src="../../register-sw.js?v=20260514-1" defer></script>
-    <script src="./english-learning.js?v=20260514-1" defer></script>
+    <script src="../../analytics.js?v=20260514-2" defer></script>
+    <script src="../../register-sw.js?v=20260514-2" defer></script>
+    <script src="./english-learning.js?v=20260514-2" defer></script>
   </body>
 </html>

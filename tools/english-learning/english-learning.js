@@ -4,7 +4,12 @@ const loginForm = document.querySelector("[data-english-login]");
 const loginMessage = document.querySelector("[data-login-message]");
 const fetchButton = document.querySelector("[data-fetch-today]");
 const generateButton = document.querySelector("[data-generate]");
+const modeInputs = [...document.querySelectorAll("input[name='generate-mode']")];
 const message = document.querySelector("[data-message]");
+const generationStatus = document.querySelector("[data-generation-status]");
+const generationTitle = document.querySelector("[data-generation-title]");
+const generationDetail = document.querySelector("[data-generation-detail]");
+const generationBar = document.querySelector("[data-generation-bar]");
 const progressEl = document.querySelector("[data-progress]");
 const percentEl = document.querySelector("[data-percent]");
 const unfamiliarCountEl = document.querySelector("[data-unfamiliar-count]");
@@ -36,31 +41,108 @@ function setMessage(text, isError = false) {
   message.classList.toggle("error", isError);
 }
 
-function startGenerationFeedback() {
+function getGenerationMode() {
+  return modeInputs.find((input) => input.checked)?.value || "fast";
+}
+
+function getModeLabel(mode) {
+  return {
+    fast: "快速模式",
+    standard: "标准模式",
+    thinking: "思考模式",
+  }[mode] || "快速模式";
+}
+
+function setModeDisabled(disabled) {
+  modeInputs.forEach((input) => {
+    input.disabled = disabled;
+  });
+}
+
+function updateGenerationStatus(title, detail, progress) {
+  generationStatus.classList.remove("is-hidden");
+  generationStatus.classList.remove("error");
+  generationTitle.textContent = title;
+  generationDetail.textContent = detail;
+  generationBar.style.width = `${Math.max(8, Math.min(98, progress))}%`;
+}
+
+function startGenerationFeedback(mode) {
   const startedAt = Date.now();
+  const modeLabel = getModeLabel(mode);
   const steps = [
-    "正在读取今日学习数据...",
-    "正在组织文章结构...",
-    "正在生成阅读文章...",
-    "正在生成单选题...",
-    "正在整理题目解析...",
-    "正在保存生成结果...",
+    "读取今日学习数据",
+    "组织文章结构",
+    "生成阅读文章",
+    "生成单选题",
+    "整理题目解析",
+    "保存生成结果",
   ];
   let stepIndex = 0;
 
-  setMessage(`${steps[stepIndex]} 请保持页面打开。`);
+  generationStatus.classList.remove("is-hidden");
+  generationBar.style.width = "8%";
+  generationTitle.textContent = `${modeLabel}生成中`;
+  generationDetail.textContent = `${steps[stepIndex]}，请保持页面打开。`;
+  setMessage(`${modeLabel}正在${steps[stepIndex]}，请保持页面打开。`);
 
   const timer = window.setInterval(() => {
     const elapsed = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
     stepIndex = Math.min(stepIndex + 1, steps.length - 1);
-    setMessage(`${steps[stepIndex]} 已等待 ${elapsed} 秒，页面仍在工作。`);
+    const progress = Math.min(92, 12 + stepIndex * 14 + Math.floor(elapsed / 3));
+    generationBar.style.width = `${progress}%`;
+    generationTitle.textContent = `${modeLabel}生成中 · ${elapsed}s`;
+    generationDetail.textContent = `正在${steps[stepIndex]}，页面仍在工作。`;
+    setMessage(`${modeLabel}正在${steps[stepIndex]}，已等待 ${elapsed} 秒。`);
 
     if (generateButton.disabled) {
       generateButton.textContent = `生成中 ${elapsed}s`;
     }
   }, 3500);
 
-  return () => window.clearInterval(timer);
+  return (finalText, isError = false) => {
+    window.clearInterval(timer);
+    generationBar.style.width = "100%";
+    generationStatus.classList.toggle("error", isError);
+    generationTitle.textContent = isError ? "生成未完成" : "生成完成";
+    generationDetail.textContent = finalText;
+  };
+}
+
+async function waitForGenerationJob(jobId, mode) {
+  const modeLabel = getModeLabel(mode);
+  let attempts = 0;
+
+  while (true) {
+    await new Promise((resolve) => window.setTimeout(resolve, 3000));
+    attempts += 1;
+
+    const response = await fetch(`/api/english/generate/${encodeURIComponent(jobId)}`, {
+      credentials: "include",
+    });
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.detail || "生成状态读取失败，请稍后查看历史记录。");
+    }
+
+    const job = data.job;
+    const elapsed = attempts * 3;
+
+    if (job.status === "done" && job.article) {
+      return job.article;
+    }
+
+    if (job.status === "failed") {
+      throw new Error(job.message || "生成失败，请稍后重试。");
+    }
+
+    updateGenerationStatus(
+      `${modeLabel}生成中 · ${elapsed}s`,
+      job.message || "后台正在继续生成，完成后会自动显示。",
+      Math.min(94, 18 + attempts * 4),
+    );
+  }
 }
 
 function formatDate(value) {
@@ -370,12 +452,16 @@ async function fetchToday() {
 }
 
 async function generateArticle() {
+  const mode = getGenerationMode();
   setBusy(generateButton, true, "正在生成...");
-  const stopFeedback = startGenerationFeedback();
+  setModeDisabled(true);
+  const stopFeedback = startGenerationFeedback(mode);
 
   try {
     const response = await fetch("/api/english/generate", {
       method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ mode }),
       credentials: "include",
     });
     const data = await response.json();
@@ -384,23 +470,26 @@ async function generateArticle() {
       throw new Error(data.detail || "generate_failed");
     }
 
-    articles = [data.article, ...articles.filter((item) => item.id !== data.article.id)];
+    const article = data.pending ? await waitForGenerationJob(data.jobId, mode) : data.article;
+    articles = [article, ...articles.filter((item) => item.id !== article.id)];
     renderHistory();
     renderLearningData({
-      progress: data.article.progress,
-      counts: data.article.counts,
-      unfamiliarItems: data.article.sourceWords.map((item) => ({
+      progress: article.progress,
+      counts: article.counts,
+      unfamiliarItems: article.sourceWords.map((item) => ({
         voc_spelling: item.word,
         first_response: item.first_response,
         is_new: item.is_new,
       })),
     });
-    renderArticle(data.article);
+    renderArticle(article);
     setMessage("文章与题目已生成并保存，输入密码访问后可查看历史。");
+    stopFeedback("文章、题目和解析已保存。");
   } catch (error) {
     setMessage(`生成失败：${error.message || "请稍后重试"}`, true);
+    stopFeedback(error.message || "生成失败，请稍后重试。", true);
   } finally {
-    stopFeedback();
+    setModeDisabled(false);
     setBusy(generateButton, false, "正在生成...");
   }
 }
