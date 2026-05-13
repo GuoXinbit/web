@@ -281,6 +281,14 @@ articleStage.addEventListener("click", (event) => {
   }
 });
 closePopover.addEventListener("click", () => popover.classList.add("is-hidden"));
+document.addEventListener("click", (event) => {
+  const clickedWord = event.target.closest("[data-word]");
+  const clickedPopover = event.target.closest("[data-popover]");
+
+  if (!clickedWord && !clickedPopover) {
+    popover.classList.add("is-hidden");
+  }
+});
 window.addEventListener("resize", () => popover.classList.add("is-hidden"));
 
 loadHistory().catch(() => {
