@@ -59,6 +59,21 @@ export async function maimemoPost(env, path, body = {}) {
 }
 
 export async function getTodayLearningData(env) {
+  const todayKey = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Shanghai",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+
+  if (env.STATS) {
+    const cached = await env.STATS.get("english-today-cache", "json");
+
+    if (cached?.date === todayKey && Date.now() - Number(cached.cachedAt || 0) < 1000 * 60 * 20) {
+      return cached.data;
+    }
+  }
+
   const progressData = await maimemoPost(env, "/study/get_study_progress");
   const progress = progressData.progress || {};
   const total = Math.max(1, Math.min(Number(progress.total || 700), 1000));
@@ -78,7 +93,7 @@ export async function getTodayLearningData(env) {
   const finished = Number(progress.finished || 0);
   const progressTotal = Number(progress.total || todayItems.length || 0);
 
-  return {
+  const result = {
     progress: {
       finished,
       total: progressTotal,
@@ -97,6 +112,16 @@ export async function getTodayLearningData(env) {
     unfamiliarWords: unfamiliarItems.map((item) => item.voc_spelling).filter(Boolean),
     todayItems,
   };
+
+  if (env.STATS) {
+    await env.STATS.put("english-today-cache", JSON.stringify({
+      date: todayKey,
+      cachedAt: Date.now(),
+      data: result,
+    }));
+  }
+
+  return result;
 }
 
 export async function saveEnglishRecord(env, type, record) {

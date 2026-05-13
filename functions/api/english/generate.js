@@ -33,6 +33,9 @@ You are writing an English reading passage for a Chinese learner preparing for C
 
 Use as many target words as naturally possible, prioritizing the more abstract and difficult ones. The article must be logical, exam-like, and coherent, not a loose word list.
 
+Do not mention any AI system, model name, API provider, ChatGPT, DeepSeek, Gemini, or the fact that this was generated.
+Do not use asterisks, markdown emphasis, or symbols around target words in the article, questions, options, or explanations.
+
 Target words:
 ${JSON.stringify(words, null, 2)}
 
@@ -42,6 +45,10 @@ Requirements:
 - Use target words naturally. Do not force a word if it damages logic.
 - Return Chinese meanings for highlighted target words.
 - Highlight words should mainly come from the target list.
+- Create 5 single-choice reading questions in the style of CET-6 and postgraduate English I.
+- Questions should follow the article's structure: early questions should refer to early paragraphs, middle questions to middle paragraphs, and the final question should test main idea, author's attitude, inference, or later-paragraph synthesis.
+- Each question must have four plausible options and one unambiguous correct answer.
+- Explanations must be rigorous in Chinese: explain why the correct option is correct and why the distractors are wrong.
 - Include paragraph breaks using "\\n\\n".
 `;
 
@@ -68,12 +75,43 @@ Requirements:
         },
       },
       chinese_summary: { type: "string" },
+      questions: {
+        type: "array",
+        minItems: 5,
+        maxItems: 5,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            id: { type: "integer" },
+            question: { type: "string" },
+            paragraph_reference: { type: "string" },
+            options: {
+              type: "array",
+              minItems: 4,
+              maxItems: 4,
+              items: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  key: { type: "string" },
+                  text: { type: "string" },
+                },
+                required: ["key", "text"],
+              },
+            },
+            answer: { type: "string" },
+            explanation: { type: "string" },
+          },
+          required: ["id", "question", "paragraph_reference", "options", "answer", "explanation"],
+        },
+      },
     },
-    required: ["title", "topic", "difficulty", "article", "used_words", "highlight_words", "chinese_summary"],
+    required: ["title", "topic", "difficulty", "article", "used_words", "highlight_words", "chinese_summary", "questions"],
   };
 
   const baseUrl = (env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, "");
-  const model = env.DEEPSEEK_MODEL || "deepseek-chat";
+  const model = env.DEEPSEEK_MODEL || "deepseek-v4-pro";
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
@@ -82,7 +120,13 @@ Requirements:
     },
     body: JSON.stringify({
       model,
-      temperature: 0.75,
+      thinking: {
+        type: "enabled",
+      },
+      reasoning_effort: "high",
+      response_format: {
+        type: "json_object",
+      },
       messages: [
         {
           role: "system",
@@ -99,13 +143,14 @@ Requirements:
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data?.error?.message || "deepseek_failed");
+    console.error("english_generation_provider_failed", data?.error?.message || response.status);
+    throw new Error("generation_provider_failed");
   }
 
   const parsed = parseModelJson(getOutputText(data));
 
-  if (!parsed?.article || !parsed?.title) {
-    throw new Error("invalid_openai_output");
+  if (!parsed?.article || !parsed?.title || !Array.isArray(parsed.questions)) {
+    throw new Error("invalid_generation_output");
   }
 
   return parsed;
@@ -157,6 +202,10 @@ export async function onRequestPost({ request, env }) {
       error: String(error?.message || error).slice(0, 400),
     });
 
-    return json({ ok: false, error: "generate_failed", detail: String(error?.message || error).slice(0, 120) }, { status: 500 });
+    const detail = error?.message === "no_unfamiliar_words"
+      ? "今天暂时没有可用于生成文章的目标词。"
+      : "生成服务暂时不可用，请稍后再试。";
+
+    return json({ ok: false, error: "generate_failed", detail }, { status: 500 });
   }
 }

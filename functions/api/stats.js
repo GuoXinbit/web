@@ -51,6 +51,7 @@ export async function onRequestGet({ request, env }) {
   const audioList = await env.STATS.list({ prefix: "audio:", limit: 1000 });
   const englishFetchList = await env.STATS.list({ prefix: "english-fetch:", limit: 1000 });
   const englishArticleList = await env.STATS.list({ prefix: "english-article:", limit: 1000 });
+  const englishAttemptList = await env.STATS.list({ prefix: "english-attempt:", limit: 1000 });
   const events = [];
   const recordings = [];
   const englishRecords = [];
@@ -71,7 +72,7 @@ export async function onRequestGet({ request, env }) {
     }
   }
 
-  for (const key of [...englishFetchList.keys, ...englishArticleList.keys]) {
+  for (const key of [...englishFetchList.keys, ...englishArticleList.keys, ...englishAttemptList.keys]) {
     const value = await env.STATS.get(key.name, "json");
 
     if (value) {
