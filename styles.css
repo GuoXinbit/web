@@ -765,25 +765,41 @@ code {
 
 .highlight-word,
 .lookup-word {
+  appearance: none;
+  -webkit-appearance: none;
   display: inline;
+  min-width: 0;
+  min-height: 0;
   border: 0;
+  border-radius: 0;
   background: transparent;
   color: inherit;
+  margin: 0;
   padding: 0;
   font: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+  word-spacing: inherit;
+  text-align: inherit;
+  vertical-align: baseline;
+  -webkit-tap-highlight-color: transparent;
   cursor: pointer;
 }
 
 .highlight-word {
-  border-bottom: 2px solid rgba(240, 184, 74, 0.9);
-  border-radius: 4px;
-  background: rgba(240, 184, 74, 0.16);
+  border-bottom: 1px solid rgba(240, 184, 74, 0.8);
+  border-radius: 0;
+  background: linear-gradient(to top, rgba(240, 184, 74, 0.18) 38%, transparent 38%);
   color: #ffe4a8;
-  padding: 0 2px;
+  padding: 0;
 }
 
-.lookup-word:hover {
+.lookup-word:hover,
+.lookup-word:focus-visible {
   color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 
 .learning-side {
