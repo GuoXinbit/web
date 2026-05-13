@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="基于墨墨背单词今日学习记录生成英语阅读文章，适配手机、平板和电脑。"
+    />
+    <title>英语学习文章生成器 - Hacker666 Tools</title>
+    <link rel="preload" href="../../styles.css?v=20260513-4" as="style" />
+    <link rel="stylesheet" href="../../styles.css?v=20260513-4" />
+  </head>
+  <body class="english-body">
+    <main class="english-shell">
+      <section class="english-lock" data-lock-panel>
+        <a class="back-link" href="../../">Hacker666 Tools</a>
+        <p class="eyebrow">English Learning</p>
+        <h1>英语学习文章生成器</h1>
+        <p>
+          输入访问密码后，可以读取今日墨墨学习进度和不熟悉单词，并生成一篇适合六级/考研英语一难度的阅读文章。
+        </p>
+        <form class="login-form" data-english-login>
+          <label>
+            <span>访问密码</span>
+            <input type="password" name="password" autocomplete="current-password" required />
+          </label>
+          <button class="primary-button" type="submit">进入学习页</button>
+          <p class="form-message" data-login-message></p>
+        </form>
+      </section>
+
+      <section class="english-app is-hidden" data-english-app>
+        <header class="english-header">
+          <div>
+            <a class="back-link" href="../../">Hacker666 Tools</a>
+            <p class="eyebrow">Daily Practice</p>
+            <h1>今日英语强化阅读</h1>
+          </div>
+          <div class="english-actions">
+            <button class="secondary-button" type="button" data-fetch-today>获取学习进度和新单词</button>
+            <button class="primary-button" type="button" data-generate>通过 ChatGPT 生成文章</button>
+          </div>
+        </header>
+
+        <section class="learning-status" aria-label="今日学习状态">
+          <article>
+            <span>今日进度</span>
+            <strong data-progress>-- / --</strong>
+          </article>
+          <article>
+            <span>完成率</span>
+            <strong data-percent>--%</strong>
+          </article>
+          <article>
+            <span>不熟悉词</span>
+            <strong data-unfamiliar-count>--</strong>
+          </article>
+          <article>
+            <span>文章历史</span>
+            <strong data-history-count>--</strong>
+          </article>
+        </section>
+
+        <p class="notice" data-message>进入后会自动加载最近生成的文章。需要新内容时先获取今日数据，再生成文章。</p>
+
+        <section class="english-layout">
+          <article class="article-stage" data-article-stage>
+            <div class="empty-state">
+              <strong>还没有选择文章</strong>
+              <span>点击历史记录或生成一篇新文章后会显示在这里。</span>
+            </div>
+          </article>
+
+          <aside class="learning-side">
+            <section class="word-panel">
+              <div class="section-heading compact">
+                <p class="eyebrow">Words</p>
+                <h2>今日不熟悉词</h2>
+              </div>
+              <div class="word-list" data-word-list>
+                <span class="muted-text">等待获取今日数据</span>
+              </div>
+            </section>
+
+            <section class="history-panel">
+              <div class="section-heading compact">
+                <p class="eyebrow">History</p>
+                <h2>生成历史</h2>
+              </div>
+              <div class="history-list" data-history-list>
+                <span class="muted-text">正在加载历史</span>
+              </div>
+            </section>
+          </aside>
+        </section>
+      </section>
+    </main>
+
+    <div class="meaning-popover is-hidden" data-popover role="dialog" aria-live="polite">
+      <button type="button" data-close-popover aria-label="关闭释义">×</button>
+      <strong data-popover-word></strong>
+      <p data-popover-meaning></p>
+      <span data-popover-note></span>
+    </div>
+
+    <script src="../../analytics.js?v=20260513-4" defer></script>
+    <script src="../../register-sw.js?v=20260513-4" defer></script>
+    <script src="./english-learning.js?v=20260513-4" defer></script>
+  </body>
+</html>

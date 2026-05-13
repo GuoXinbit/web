@@ -8,8 +8,8 @@
       content="Hacker666 工具库，收集适合手机、平板和电脑使用的在线工具。"
     />
     <title>Hacker666 工具库</title>
-    <link rel="preload" href="./styles.css?v=20260513-3" as="style" />
-    <link rel="stylesheet" href="./styles.css?v=20260513-3" />
+    <link rel="preload" href="./styles.css?v=20260513-4" as="style" />
+    <link rel="stylesheet" href="./styles.css?v=20260513-4" />
   </head>
   <body>
     <header class="site-shell hero">
@@ -17,6 +17,7 @@
         <a class="brand" href="./">Hacker666 Tools</a>
         <div class="nav-links">
           <a href="./tools/audio-spectrum/">频谱分析器</a>
+          <a href="./tools/english-learning/">英语学习</a>
           <a href="./admin.html">后台</a>
         </div>
       </nav>
@@ -26,19 +27,20 @@
           <p class="eyebrow">Personal Web Tool Library</p>
           <h1 id="home-title">一个轻量、响应式的网页工具库</h1>
           <p>
-            第一个工具已经上线：实时声音频谱分析器。后续工具入口已经预留，
-            可以逐步扩展成常用网页工具集合。
+            这里收集适合手机、平板和电脑使用的在线工具。频谱分析器已经上线，
+            英语学习功能直接集成在本页，可读取今日学习记录并生成强化阅读文章。
           </p>
           <div class="hero-actions">
-            <a class="primary-link" href="./tools/audio-spectrum/">打开频谱分析器</a>
+            <a class="primary-link" href="./tools/english-learning/">打开英语学习</a>
+            <a class="secondary-link" href="./tools/audio-spectrum/">打开频谱分析器</a>
             <a class="secondary-link" href="./admin.html">进入后台</a>
           </div>
         </div>
 
         <div class="hero-panel" aria-label="当前工具状态">
-          <span class="panel-label">Live Tool</span>
-          <strong>Audio Spectrum</strong>
-          <p>麦克风音频只在浏览器本地分析，不上传、不保存录音。</p>
+          <span class="panel-label">Live Tools</span>
+          <strong>Study & Spectrum</strong>
+          <p>学习记录、文章生成、声音频谱分析都在同一个工具库里统一管理。</p>
         </div>
       </section>
     </header>
@@ -50,6 +52,12 @@
       </section>
 
       <section class="tool-grid" aria-label="工具列表">
+        <a class="tool-card active" href="./tools/english-learning/">
+          <span class="status-pill">已上线</span>
+          <h3>英语学习文章生成器</h3>
+          <p>读取今日墨墨学习进度和不熟悉词，生成六级/考研英语一难度阅读文章。</p>
+        </a>
+
         <a class="tool-card active" href="./tools/audio-spectrum/">
           <span class="status-pill">已上线</span>
           <h3>实时声音频谱分析器</h3>
@@ -79,23 +87,17 @@
           <h3>网络检测工具</h3>
           <p>预留位置：IP、延迟、请求头和基础连通性检测。</p>
         </article>
-
-        <article class="tool-card">
-          <span class="status-pill muted">未上线</span>
-          <h3>单位换算器</h3>
-          <p>预留位置：长度、重量、时间、数据单位快速换算。</p>
-        </article>
       </section>
     </main>
 
     <footer class="site-shell footer">
       <p>
         本站会记录访问统计用于个人后台查看，包括访问时间、页面、设备信息和 IP。
-        频谱分析器不会上传或保存麦克风录音。
+        频谱分析器会在页面中明确提示录音采集；英语学习功能会保存文章生成历史。
       </p>
     </footer>
 
-    <script src="./analytics.js?v=20260513-3" defer></script>
-    <script src="./register-sw.js?v=20260513-3" defer></script>
+    <script src="./analytics.js?v=20260513-4" defer></script>
+    <script src="./register-sw.js?v=20260513-4" defer></script>
   </body>
 </html>

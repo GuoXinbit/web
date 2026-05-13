@@ -604,6 +604,285 @@ code {
   cursor: pointer;
 }
 
+.english-body {
+  background:
+    radial-gradient(circle at 18% 10%, rgba(51, 208, 162, 0.13), transparent 28%),
+    radial-gradient(circle at 88% 14%, rgba(240, 184, 74, 0.1), transparent 24%),
+    linear-gradient(145deg, #0b0d10 0%, #10151a 50%, #080a0d 100%);
+}
+
+.english-shell {
+  width: min(1280px, calc(100% - clamp(16px, 4vw, 44px)));
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: max(18px, env(safe-area-inset-top)) 0 max(18px, env(safe-area-inset-bottom));
+}
+
+.english-lock,
+.english-app,
+.article-stage,
+.learning-side > section {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(20, 25, 32, 0.88);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.24);
+}
+
+.english-lock {
+  width: min(560px, 100%);
+  margin: min(10vh, 86px) auto 0;
+  padding: clamp(18px, 4vw, 30px);
+}
+
+.english-lock p {
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.english-app {
+  padding: clamp(14px, 2.6vw, 28px);
+}
+
+.english-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.english-header h1 {
+  font-size: clamp(1.65rem, 4.8vw, 4.2rem);
+  line-height: 1;
+}
+
+.english-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: min(480px, 100%);
+}
+
+.learning-status {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.learning-status article {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-strong);
+  padding: 16px;
+}
+
+.learning-status span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.learning-status strong {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: clamp(1.45rem, 3vw, 2.45rem);
+  line-height: 1;
+}
+
+.english-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 14px;
+  margin-top: 14px;
+  align-items: start;
+}
+
+.article-stage {
+  min-width: 0;
+  min-height: 560px;
+  padding: clamp(18px, 3vw, 34px);
+}
+
+.empty-state {
+  display: grid;
+  min-height: 360px;
+  place-content: center;
+  gap: 10px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.empty-state strong {
+  color: var(--ink);
+  font-size: 1.25rem;
+}
+
+.article-header {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+}
+
+.article-header h2 {
+  margin: 18px 0 12px;
+  font-size: clamp(1.7rem, 4vw, 3.2rem);
+  line-height: 1.04;
+}
+
+.article-header p {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.article-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.article-meta span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #0d1116;
+}
+
+.article-content {
+  color: #eef4f2;
+  font-size: clamp(1rem, 1.4vw, 1.13rem);
+  line-height: 1.9;
+}
+
+.article-content p {
+  margin-bottom: 1.1em;
+}
+
+.highlight-word {
+  display: inline;
+  border: 0;
+  border-bottom: 2px solid rgba(240, 184, 74, 0.9);
+  border-radius: 4px;
+  background: rgba(240, 184, 74, 0.16);
+  color: #ffe4a8;
+  padding: 0 2px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.learning-side {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.learning-side > section {
+  padding: 16px;
+}
+
+.word-list,
+.history-list {
+  display: grid;
+  gap: 8px;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.study-word {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0d1116;
+  padding: 10px;
+}
+
+.study-word strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.study-word em {
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-style: normal;
+}
+
+.history-item {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0d1116;
+  color: var(--ink);
+  padding: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-item.active {
+  border-color: rgba(51, 208, 162, 0.65);
+  background: rgba(51, 208, 162, 0.08);
+}
+
+.history-item span,
+.muted-text {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.meaning-popover {
+  position: fixed;
+  z-index: 20;
+  width: min(360px, calc(100vw - 24px));
+  border: 1px solid rgba(240, 184, 74, 0.4);
+  border-radius: 8px;
+  background: rgba(15, 18, 23, 0.98);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+  padding: 16px;
+}
+
+.meaning-popover button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--panel-strong);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.meaning-popover strong {
+  display: block;
+  padding-right: 34px;
+  color: var(--accent);
+  font-size: 1.2rem;
+}
+
+.meaning-popover p {
+  margin: 10px 0 8px;
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+.meaning-popover span {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 @media (max-width: 1100px) {
   .tool-body .app {
     grid-template-columns: 1fr;
@@ -623,16 +902,35 @@ code {
   .notice {
     grid-column: 1 / -1;
   }
+
+  .english-header,
+  .english-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .english-header {
+    flex-direction: column;
+  }
+
+  .english-actions {
+    justify-content: flex-start;
+    min-width: 0;
+  }
 }
 
 @media (max-width: 860px) {
   .hero-grid,
-  .tool-grid {
+  .tool-grid,
+  .learning-status {
     grid-template-columns: 1fr;
   }
 
   .stat-grid {
     grid-template-columns: 1fr;
+  }
+
+  .article-stage {
+    min-height: 420px;
   }
 }
 
@@ -665,6 +963,16 @@ code {
 
   .controls {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .english-app {
+    padding: 12px;
+  }
+
+  .english-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
   }
 
   .readouts {

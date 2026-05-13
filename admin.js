@@ -8,6 +8,7 @@ const todayEl = document.querySelector("[data-today]");
 const ipsEl = document.querySelector("[data-ips]");
 const eventsEl = document.querySelector("[data-events]");
 const recordingsEl = document.querySelector("[data-recordings]");
+const englishRecordsEl = document.querySelector("[data-english-records]");
 const playerPanel = document.querySelector("[data-player-panel]");
 const playerTitle = document.querySelector("[data-player-title]");
 const audioPlayer = document.querySelector("[data-audio-player]");
@@ -19,37 +20,36 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
-function renderStats(data) {
-  totalEl.textContent = data.summary.total;
-  todayEl.textContent = data.summary.today;
-  ipsEl.textContent = data.summary.uniqueIps;
-
+function renderEvents(events) {
   eventsEl.innerHTML = "";
 
-  if (!data.events.length) {
+  if (!events.length) {
     eventsEl.innerHTML = '<tr><td colspan="5">暂无访问记录</td></tr>';
-  } else {
-    for (const event of data.events) {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${formatDate(event.time)}</td>
-        <td><code>${event.ip || "-"}</code></td>
-        <td>${event.path || "-"}</td>
-        <td>${event.device || "-"}</td>
-        <td>${event.referrer || "-"}</td>
-      `;
-      eventsEl.append(row);
-    }
+    return;
   }
 
+  for (const event of events) {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${formatDate(event.time)}</td>
+      <td><code>${event.ip || "-"}</code></td>
+      <td>${event.path || "-"}</td>
+      <td>${event.device || "-"}</td>
+      <td>${event.referrer || "-"}</td>
+    `;
+    eventsEl.append(row);
+  }
+}
+
+function renderRecordings(recordings = []) {
   recordingsEl.innerHTML = "";
 
-  if (!data.recordings?.length) {
+  if (!recordings.length) {
     recordingsEl.innerHTML = '<tr><td colspan="6">暂无录音</td></tr>';
     return;
   }
 
-  for (const recording of data.recordings) {
+  for (const recording of recordings) {
     const row = document.createElement("tr");
     const seconds = Math.max(0, Math.round((recording.durationMs || 0) / 1000));
     const sizeMb = recording.size ? `${(recording.size / 1024 / 1024).toFixed(2)} MB` : "-";
@@ -63,6 +63,40 @@ function renderStats(data) {
     `;
     recordingsEl.append(row);
   }
+}
+
+function renderEnglishRecords(records = []) {
+  englishRecordsEl.innerHTML = "";
+
+  if (!records.length) {
+    englishRecordsEl.innerHTML = '<tr><td colspan="6">暂无英语学习记录</td></tr>';
+    return;
+  }
+
+  for (const record of records) {
+    const row = document.createElement("tr");
+    const progress = record.progress ? `${record.progress.finished || 0}/${record.progress.total || 0}` : "-";
+    const unfamiliar = record.counts?.unfamiliar ?? "-";
+    const status = record.ok === false ? "失败" : (record.generated?.title || "获取今日数据");
+    row.innerHTML = `
+      <td>${formatDate(record.createdAt)}</td>
+      <td>${record.type || "-"}</td>
+      <td>${progress}</td>
+      <td>${unfamiliar}</td>
+      <td>${status}</td>
+      <td>${record.error || "-"}</td>
+    `;
+    englishRecordsEl.append(row);
+  }
+}
+
+function renderStats(data) {
+  totalEl.textContent = data.summary.total;
+  todayEl.textContent = data.summary.today;
+  ipsEl.textContent = data.summary.uniqueIps;
+  renderEvents(data.events || []);
+  renderRecordings(data.recordings || []);
+  renderEnglishRecords(data.englishRecords || []);
 }
 
 recordingsEl.addEventListener("click", (event) => {
@@ -125,6 +159,7 @@ refreshButton?.addEventListener("click", () => {
   loadStats().catch(() => {
     eventsEl.innerHTML = '<tr><td colspan="5">加载失败，请稍后再试</td></tr>';
     recordingsEl.innerHTML = '<tr><td colspan="6">加载失败，请稍后再试</td></tr>';
+    englishRecordsEl.innerHTML = '<tr><td colspan="6">加载失败，请稍后再试</td></tr>';
   });
 });
 

@@ -13,6 +13,9 @@
 /admin.js
   Cache-Control: public, max-age=31536000, immutable
 
+/tools/english-learning/english-learning.js
+  Cache-Control: public, max-age=31536000, immutable
+
 /register-sw.js
   Cache-Control: public, max-age=31536000, immutable
 

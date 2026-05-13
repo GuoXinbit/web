@@ -49,8 +49,11 @@ export async function onRequestGet({ request, env }) {
 
   const list = await env.STATS.list({ prefix: "event:", limit: 1000 });
   const audioList = await env.STATS.list({ prefix: "audio:", limit: 1000 });
+  const englishFetchList = await env.STATS.list({ prefix: "english-fetch:", limit: 1000 });
+  const englishArticleList = await env.STATS.list({ prefix: "english-article:", limit: 1000 });
   const events = [];
   const recordings = [];
+  const englishRecords = [];
 
   for (const key of list.keys) {
     const value = await env.STATS.get(key.name, "json");
@@ -68,8 +71,17 @@ export async function onRequestGet({ request, env }) {
     }
   }
 
+  for (const key of [...englishFetchList.keys, ...englishArticleList.keys]) {
+    const value = await env.STATS.get(key.name, "json");
+
+    if (value) {
+      englishRecords.push(value);
+    }
+  }
+
   events.sort((a, b) => new Date(b.time) - new Date(a.time));
   recordings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  englishRecords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const today = new Date().toISOString().slice(0, 10);
   const uniqueIps = new Set(events.map((event) => event.ip).filter(Boolean));
@@ -83,5 +95,6 @@ export async function onRequestGet({ request, env }) {
     },
     events: events.slice(0, 200),
     recordings: recordings.slice(0, 100),
+    englishRecords: englishRecords.slice(0, 120),
   });
 }
