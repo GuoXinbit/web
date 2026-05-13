@@ -1,0 +1,12 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cloudflare/workers-sdk/main/packages/wrangler/config-schema.json",
+  "name": "web",
+  "compatibility_date": "2026-05-13",
+  "pages_build_output_dir": ".",
+  "kv_namespaces": [
+    {
+      "binding": "STATS",
+      "id": "d0914875b63f4f508a9c100989662bd7"
+    }
+  ]
+}

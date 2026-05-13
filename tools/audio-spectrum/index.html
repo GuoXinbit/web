@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="实时麦克风声音频谱分析网页，适用于手机、平板和电脑。"
+    />
+    <title>实时声音频谱分析器 - Hacker666 Tools</title>
+    <link rel="stylesheet" href="../../styles.css" />
+  </head>
+  <body class="tool-body">
+    <main class="app" aria-labelledby="app-title">
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <a class="back-link" href="../../">Hacker666 Tools</a>
+            <p class="eyebrow">Live Audio Spectrum</p>
+            <h1 id="app-title">实时声音频谱分析器</h1>
+          </div>
+          <div class="meter" aria-label="输入音量">
+            <span class="meter-fill" data-level></span>
+          </div>
+        </header>
+
+        <section class="visualizer" aria-label="实时频谱图">
+          <canvas id="spectrum" aria-label="声音频谱画布"></canvas>
+          <div class="idle" data-idle>
+            <strong>等待麦克风输入</strong>
+            <span>本工具会采集麦克风音频并保存录音；继续使用即表示同意。</span>
+          </div>
+          <div class="frequency-scale" aria-hidden="true">
+            <span>20 Hz</span>
+            <span>1 kHz</span>
+            <span>5 kHz</span>
+            <span>20 kHz</span>
+          </div>
+        </section>
+
+        <section class="readouts" aria-label="实时读数">
+          <article>
+            <span class="label">主频</span>
+            <strong data-peak-frequency>-- Hz</strong>
+          </article>
+          <article>
+            <span class="label">峰值</span>
+            <strong data-peak-level>-- dB</strong>
+          </article>
+          <article>
+            <span class="label">采样率</span>
+            <strong data-sample-rate>-- kHz</strong>
+          </article>
+        </section>
+      </section>
+
+      <aside class="controls" aria-label="控制面板">
+        <div class="control-header">
+          <p class="eyebrow">Input</p>
+          <p class="status" data-status>未启动</p>
+        </div>
+
+        <div class="recording-disclosure">
+          本工具会采集麦克风音频并保存录音。点击开始并继续使用即表示同意录音采集与保存。
+        </div>
+
+        <button class="primary-button" type="button" data-toggle>
+          开始分析并录音
+        </button>
+
+        <label class="field">
+          <span>灵敏度</span>
+          <input
+            type="range"
+            min="0.6"
+            max="2.2"
+            step="0.1"
+            value="1.2"
+            data-gain
+          />
+        </label>
+
+        <label class="field">
+          <span>平滑度</span>
+          <input
+            type="range"
+            min="0"
+            max="0.92"
+            step="0.02"
+            value="0.78"
+            data-smoothing
+          />
+        </label>
+
+        <label class="field range-field">
+          <span>显示范围</span>
+          <select data-range>
+            <option value="2000">2 kHz</option>
+            <option value="5000" selected>5 kHz</option>
+            <option value="12000">12 kHz</option>
+            <option value="22000">全频段</option>
+          </select>
+        </label>
+
+        <div class="notice" role="status" data-message>
+          需要 HTTPS 或 localhost 才能访问麦克风。停止分析时录音会上传保存到后台。
+        </div>
+      </aside>
+    </main>
+
+    <script src="../../analytics.js" defer></script>
+    <script src="./audio-spectrum.js" defer></script>
+  </body>
+</html>

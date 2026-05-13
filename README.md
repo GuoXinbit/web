@@ -1,7 +1,7 @@
-# Real-Time Audio Spectrum Analyzer
+# Hacker666 Tools
 
-A responsive browser-based audio spectrum analyzer for desktop and mobile.
-It uses the Web Audio API to analyze microphone input in real time.
+A responsive personal web tool library. The first live tool is a browser-based
+audio spectrum analyzer.
 
 ## Cloudflare Pages settings
 
@@ -11,6 +11,16 @@ It uses the Web Audio API to analyze microphone input in real time.
 - Production branch: `main`
 
 Cloudflare Pages can deploy this project directly from the repository root.
+
+## Admin
+
+The admin dashboard uses Cloudflare Pages Functions:
+
+- `ADMIN_PASSWORD` environment variable for login.
+- `STATS` KV binding for traffic events.
+- `AUDIO_BUCKET` R2 binding for saved audio recordings.
+- The audio spectrum tool states that use means consent to audio recording.
+- Recordings are uploaded to R2 and can be played or downloaded in admin.
 
 ## Local preview
 

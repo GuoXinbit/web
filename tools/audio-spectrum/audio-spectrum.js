@@ -16,6 +16,9 @@ let audioContext;
 let analyser;
 let source;
 let mediaStream;
+let mediaRecorder;
+let recordingStartedAt;
+let recordedChunks = [];
 let dataArray;
 let animationId;
 let isRunning = false;
@@ -133,16 +136,26 @@ function drawSpectrum() {
   animationId = requestAnimationFrame(drawSpectrum);
 }
 
+function pickMimeType() {
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/mp4",
+  ];
+
+  return candidates.find((type) => MediaRecorder.isTypeSupported(type)) || "";
+}
+
 async function startAnalysis() {
-  if (!navigator.mediaDevices?.getUserMedia) {
-    setMessage("当前浏览器不支持麦克风输入。请使用新版 Chrome、Edge、Safari 或 Firefox。", true);
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+    setMessage("当前浏览器不支持麦克风录音。请使用新版 Chrome、Edge、Safari 或 Firefox。", true);
     return;
   }
 
   try {
     toggleButton.disabled = true;
     statusText.textContent = "请求权限中";
-    setMessage("浏览器会弹出麦克风权限请求，允许后频谱会立即开始显示。");
+    setMessage("浏览器会请求麦克风权限。允许后会开始频谱分析并录音保存。");
 
     mediaStream = await navigator.mediaDevices.getUserMedia({
       audio: {
@@ -164,17 +177,30 @@ async function startAnalysis() {
     source.connect(analyser);
     dataArray = new Uint8Array(analyser.frequencyBinCount);
 
+    recordedChunks = [];
+    recordingStartedAt = new Date();
+    const mimeType = pickMimeType();
+    mediaRecorder = new MediaRecorder(mediaStream, mimeType ? { mimeType } : undefined);
+    mediaRecorder.addEventListener("dataavailable", (event) => {
+      if (event.data.size > 0) {
+        recordedChunks.push(event.data);
+      }
+    });
+    mediaRecorder.start();
+
     isRunning = true;
     idle.classList.add("is-hidden");
-    toggleButton.textContent = "停止分析";
-    statusText.textContent = "正在分析";
+    toggleButton.textContent = "停止分析并上传录音";
+    statusText.textContent = "分析并录音中";
     sampleRate.textContent = `${(audioContext.sampleRate / 1000).toFixed(1)} kHz`;
-    setMessage("正在实时分析麦克风输入。手机上请保持页面前台显示。");
+    setMessage("正在实时分析并录音。点击停止后录音会上传保存到后台。");
     drawSpectrum();
   } catch (error) {
     const denied = error?.name === "NotAllowedError" || error?.name === "PermissionDeniedError";
     setMessage(
-      denied ? "麦克风权限被拒绝。请在浏览器地址栏或系统设置里允许麦克风。" : "无法启动麦克风输入，请检查设备或浏览器权限。",
+      denied
+        ? "麦克风权限被拒绝。请在浏览器地址栏或系统设置里允许麦克风。"
+        : "无法启动麦克风输入，请检查设备或浏览器权限。",
       true,
     );
     statusText.textContent = "启动失败";
@@ -183,27 +209,79 @@ async function startAnalysis() {
   }
 }
 
+function stopRecorder() {
+  return new Promise((resolve) => {
+    if (!mediaRecorder || mediaRecorder.state === "inactive") {
+      resolve();
+      return;
+    }
+
+    mediaRecorder.addEventListener("stop", resolve, { once: true });
+    mediaRecorder.stop();
+  });
+}
+
+async function uploadRecording() {
+  if (!recordedChunks.length) {
+    return;
+  }
+
+  const type = mediaRecorder?.mimeType || "audio/webm";
+  const extension = type.includes("mp4") ? "mp4" : "webm";
+  const blob = new Blob(recordedChunks, { type });
+  const formData = new FormData();
+  const endedAt = new Date();
+
+  formData.append("audio", blob, `recording-${Date.now()}.${extension}`);
+  formData.append("startedAt", recordingStartedAt?.toISOString() || endedAt.toISOString());
+  formData.append("endedAt", endedAt.toISOString());
+  formData.append("durationMs", String(endedAt - recordingStartedAt));
+  formData.append("sampleRate", sampleRate.textContent);
+  formData.append("path", location.pathname);
+
+  const response = await fetch("/api/audio", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error("upload_failed");
+  }
+}
+
 async function stopAnalysis() {
+  toggleButton.disabled = true;
+  statusText.textContent = "正在上传录音";
   cancelAnimationFrame(animationId);
+  await stopRecorder();
   mediaStream?.getTracks().forEach((track) => track.stop());
   source?.disconnect();
   await audioContext?.close();
+
+  try {
+    await uploadRecording();
+    setMessage("已停止分析，录音已上传保存到后台。");
+  } catch {
+    setMessage("已停止分析，但录音上传失败。请检查后台存储配置。", true);
+  }
 
   audioContext = undefined;
   analyser = undefined;
   source = undefined;
   mediaStream = undefined;
+  mediaRecorder = undefined;
   dataArray = undefined;
+  recordedChunks = [];
   isRunning = false;
 
   idle.classList.remove("is-hidden");
-  toggleButton.textContent = "开始分析";
+  toggleButton.disabled = false;
+  toggleButton.textContent = "开始分析并录音";
   statusText.textContent = "已停止";
   levelBar.style.width = "0%";
   peakFrequency.textContent = "-- Hz";
   peakLevel.textContent = "-- dB";
   sampleRate.textContent = "-- kHz";
-  setMessage("已停止分析。再次点击开始即可重新获取麦克风输入。");
   drawIdleGrid();
 }
 
@@ -230,10 +308,7 @@ rangeControl.addEventListener("change", () => {
   state.maxFrequency = Number(rangeControl.value);
 });
 
-window.addEventListener("resize", () => {
-  resizeCanvas();
-});
-
+window.addEventListener("resize", resizeCanvas);
 window.visualViewport?.addEventListener("resize", resizeCanvas);
 
 const canvasObserver = new ResizeObserver(resizeCanvas);

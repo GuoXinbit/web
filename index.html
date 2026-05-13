@@ -5,105 +5,95 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta
       name="description"
-      content="实时麦克风声音频谱分析网页，适用于手机和电脑。"
+      content="Hacker666 工具库，收集适合手机、平板和电脑使用的在线工具。"
     />
-    <title>实时声音频谱分析器</title>
+    <title>Hacker666 工具库</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="app" aria-labelledby="app-title">
-      <section class="workspace">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">Live Audio Spectrum</p>
-            <h1 id="app-title">实时声音频谱分析器</h1>
-          </div>
-          <div class="meter" aria-label="输入音量">
-            <span class="meter-fill" data-level></span>
-          </div>
-        </header>
+    <header class="site-shell hero">
+      <nav class="nav" aria-label="主导航">
+        <a class="brand" href="./">Hacker666 Tools</a>
+        <div class="nav-links">
+          <a href="./tools/audio-spectrum/">频谱分析器</a>
+          <a href="./admin.html">后台</a>
+        </div>
+      </nav>
 
-        <section class="visualizer" aria-label="实时频谱图">
-          <canvas id="spectrum" aria-label="声音频谱画布"></canvas>
-          <div class="idle" data-idle>
-            <strong>等待麦克风输入</strong>
-            <span>点击开始后，允许浏览器使用麦克风。</span>
+      <section class="hero-grid" aria-labelledby="home-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Personal Web Tool Library</p>
+          <h1 id="home-title">一个轻量、响应式的网页工具库</h1>
+          <p>
+            第一个工具已经上线：实时声音频谱分析器。后续工具入口已经预留，
+            可以逐步扩展成常用网页工具集合。
+          </p>
+          <div class="hero-actions">
+            <a class="primary-link" href="./tools/audio-spectrum/">打开频谱分析器</a>
+            <a class="secondary-link" href="./admin.html">进入后台</a>
           </div>
-          <div class="frequency-scale" aria-hidden="true">
-            <span>20 Hz</span>
-            <span>1 kHz</span>
-            <span>5 kHz</span>
-            <span>20 kHz</span>
-          </div>
-        </section>
+        </div>
 
-        <section class="readouts" aria-label="实时读数">
-          <article>
-            <span class="label">主频</span>
-            <strong data-peak-frequency>-- Hz</strong>
-          </article>
-          <article>
-            <span class="label">峰值</span>
-            <strong data-peak-level>-- dB</strong>
-          </article>
-          <article>
-            <span class="label">采样率</span>
-            <strong data-sample-rate>-- kHz</strong>
-          </article>
-        </section>
+        <div class="hero-panel" aria-label="当前工具状态">
+          <span class="panel-label">Live Tool</span>
+          <strong>Audio Spectrum</strong>
+          <p>麦克风音频只在浏览器本地分析，不上传、不保存录音。</p>
+        </div>
+      </section>
+    </header>
+
+    <main class="site-shell">
+      <section class="section-heading">
+        <p class="eyebrow">Tools</p>
+        <h2>工具列表</h2>
       </section>
 
-      <aside class="controls" aria-label="控制面板">
-        <div class="control-header">
-          <p class="eyebrow">Input</p>
-          <p class="status" data-status>未启动</p>
-        </div>
+      <section class="tool-grid" aria-label="工具列表">
+        <a class="tool-card active" href="./tools/audio-spectrum/">
+          <span class="status-pill">已上线</span>
+          <h3>实时声音频谱分析器</h3>
+          <p>用麦克风实时显示声音频谱、主频、峰值和采样率。</p>
+        </a>
 
-        <button class="primary-button" type="button" data-toggle>
-          开始分析
-        </button>
+        <article class="tool-card">
+          <span class="status-pill muted">未上线</span>
+          <h3>图片压缩工具</h3>
+          <p>预留位置：面向手机和电脑的图片压缩、格式转换。</p>
+        </article>
 
-        <label class="field">
-          <span>灵敏度</span>
-          <input
-            type="range"
-            min="0.6"
-            max="2.2"
-            step="0.1"
-            value="1.2"
-            data-gain
-          />
-        </label>
+        <article class="tool-card">
+          <span class="status-pill muted">未上线</span>
+          <h3>颜色取样器</h3>
+          <p>预留位置：配色、取色、色值转换和调色板生成。</p>
+        </article>
 
-        <label class="field">
-          <span>平滑度</span>
-          <input
-            type="range"
-            min="0"
-            max="0.92"
-            step="0.02"
-            value="0.78"
-            data-smoothing
-          />
-        </label>
+        <article class="tool-card">
+          <span class="status-pill muted">未上线</span>
+          <h3>文本处理器</h3>
+          <p>预留位置：大小写转换、去重、格式化、批量替换。</p>
+        </article>
 
-        <label class="field range-field">
-          <span>显示范围</span>
-          <select data-range>
-            <option value="2000">2 kHz</option>
-            <option value="5000" selected>5 kHz</option>
-            <option value="12000">12 kHz</option>
-            <option value="22000">全频段</option>
-          </select>
-        </label>
+        <article class="tool-card">
+          <span class="status-pill muted">未上线</span>
+          <h3>网络检测工具</h3>
+          <p>预留位置：IP、延迟、请求头和基础连通性检测。</p>
+        </article>
 
-        <div class="notice" role="status" data-message>
-          需要 HTTPS 或 localhost 才能访问麦克风。手机打开时请使用
-          https://hacker666.com。
-        </div>
-      </aside>
+        <article class="tool-card">
+          <span class="status-pill muted">未上线</span>
+          <h3>单位换算器</h3>
+          <p>预留位置：长度、重量、时间、数据单位快速换算。</p>
+        </article>
+      </section>
     </main>
 
-    <script src="./script.js" defer></script>
+    <footer class="site-shell footer">
+      <p>
+        本站会记录访问统计用于个人后台查看，包括访问时间、页面、设备信息和 IP。
+        频谱分析器不会上传或保存麦克风录音。
+      </p>
+    </footer>
+
+    <script src="./analytics.js" defer></script>
   </body>
 </html>
