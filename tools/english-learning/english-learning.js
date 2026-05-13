@@ -245,7 +245,8 @@ function renderQuiz(record, selected = {}, submitted = false) {
                     .map((option) => `
                       <label class="${submitted && option.key === question.answer ? "right-answer" : ""}">
                         <input type="radio" name="question-${question.id}" value="${escapeHtml(option.key)}" ${chosen === option.key ? "checked" : ""} ${submitted ? "disabled" : ""} />
-                        <span>${escapeHtml(option.key)}. ${wrapClickableWords(escapeHtml(option.text))}</span>
+                        <span class="option-key">${escapeHtml(option.key)}</span>
+                        <span class="option-text">${wrapClickableWords(escapeHtml(option.text))}</span>
                       </label>
                     `)
                     .join("")}

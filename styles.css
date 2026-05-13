@@ -1011,14 +1011,39 @@ code {
 
 .quiz-options label {
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 20px 34px minmax(0, 1fr);
+  gap: 12px;
   align-items: start;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 10px;
+  min-height: 52px;
+  padding: 12px;
   color: var(--muted);
   cursor: pointer;
+}
+
+.quiz-options input {
+  margin-top: 6px;
+}
+
+.option-key {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--accent);
+  font-weight: 850;
+  line-height: 1;
+}
+
+.option-text {
+  display: block;
+  min-width: 0;
+  color: inherit;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
 }
 
 .quiz-options label:has(input:checked) {
