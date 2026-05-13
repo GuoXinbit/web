@@ -14,8 +14,8 @@ function parseModelJson(text) {
 }
 
 async function generateArticle(env, learningData) {
-  if (!env.GEMINI_API_KEY) {
-    throw new Error("missing_gemini_api_key");
+  if (!env.DEEPSEEK_API_KEY) {
+    throw new Error("missing_deepseek_api_key");
   }
 
   if (!learningData.unfamiliarItems.length) {
@@ -72,12 +72,12 @@ Requirements:
     required: ["title", "topic", "difficulty", "article", "used_words", "highlight_words", "chinese_summary"],
   };
 
-  const baseUrl = (env.GEMINI_BASE_URL || "https://bitexingai.com/v1").replace(/\/+$/, "");
-  const model = env.GEMINI_MODEL || "gemini-2.5-flash";
+  const baseUrl = (env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, "");
+  const model = env.DEEPSEEK_MODEL || "deepseek-chat";
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
-      authorization: `Bearer ${env.GEMINI_API_KEY}`,
+      authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({
@@ -99,7 +99,7 @@ Requirements:
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data?.error?.message || "gemini_failed");
+    throw new Error(data?.error?.message || "deepseek_failed");
   }
 
   const parsed = parseModelJson(getOutputText(data));
