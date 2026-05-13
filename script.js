@@ -19,7 +19,9 @@ let mediaStream;
 let dataArray;
 let animationId;
 let isRunning = false;
-let devicePixelRatioCache = 1;
+let canvasWidth = 0;
+let canvasHeight = 0;
+let devicePixelRatioCache = window.devicePixelRatio || 1;
 
 const state = {
   gain: Number(gainControl.value),
@@ -35,9 +37,18 @@ function setMessage(text, isError = false) {
 function resizeCanvas() {
   const rect = canvas.getBoundingClientRect();
   const ratio = window.devicePixelRatio || 1;
+  const nextWidth = Math.max(1, Math.floor(rect.width * ratio));
+  const nextHeight = Math.max(1, Math.floor(rect.height * ratio));
+
+  if (nextWidth === canvasWidth && nextHeight === canvasHeight && ratio === devicePixelRatioCache) {
+    return;
+  }
+
+  canvasWidth = nextWidth;
+  canvasHeight = nextHeight;
   devicePixelRatioCache = ratio;
-  canvas.width = Math.max(1, Math.floor(rect.width * ratio));
-  canvas.height = Math.max(1, Math.floor(rect.height * ratio));
+  canvas.width = nextWidth;
+  canvas.height = nextHeight;
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 }
 
@@ -220,11 +231,13 @@ rangeControl.addEventListener("change", () => {
 });
 
 window.addEventListener("resize", () => {
-  const currentRatio = window.devicePixelRatio || 1;
-  if (currentRatio !== devicePixelRatioCache || canvas.width !== canvas.clientWidth * currentRatio) {
-    resizeCanvas();
-  }
+  resizeCanvas();
 });
+
+window.visualViewport?.addEventListener("resize", resizeCanvas);
+
+const canvasObserver = new ResizeObserver(resizeCanvas);
+canvasObserver.observe(canvas);
 
 resizeCanvas();
 drawIdleGrid();
