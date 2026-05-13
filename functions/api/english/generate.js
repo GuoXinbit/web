@@ -43,7 +43,7 @@ Do not use asterisks, markdown emphasis, or symbols around target words in the a
 ${wordInstruction}
 
 Requirements:
-- Write one article of 520-760 English words.
+- Write one article of 430-620 English words.
 - Topic should fit exam reading: society, education, technology, public policy, economy, environment, ethics, or urban life.
 - Use target words naturally when target words exist. Do not force a word if it damages logic.
 - Return Chinese meanings for highlighted words.
@@ -114,33 +114,37 @@ Requirements:
   };
 
   const baseUrl = (env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, "");
-  const model = env.DEEPSEEK_MODEL || "deepseek-v4-pro";
+  const model = env.DEEPSEEK_MODEL || "deepseek-reasoner";
+  const body = {
+    model,
+    response_format: {
+      type: "json_object",
+    },
+    max_tokens: 4096,
+    messages: [
+      {
+        role: "system",
+        content: "You return only valid JSON. Do not wrap JSON in Markdown fences.",
+      },
+      {
+        role: "user",
+        content: `${prompt}\n\nReturn JSON that matches this schema exactly:\n${JSON.stringify(schema, null, 2)}`,
+      },
+    ],
+  };
+
+  if (model.includes("v4")) {
+    body.thinking = { type: "enabled" };
+    body.reasoning_effort = "high";
+  }
+
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
       authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
       "content-type": "application/json",
     },
-    body: JSON.stringify({
-      model,
-      thinking: {
-        type: "enabled",
-      },
-      reasoning_effort: "high",
-      response_format: {
-        type: "json_object",
-      },
-      messages: [
-        {
-          role: "system",
-          content: "You return only valid JSON. Do not wrap JSON in Markdown fences.",
-        },
-        {
-          role: "user",
-          content: `${prompt}\n\nReturn JSON that matches this schema exactly:\n${JSON.stringify(schema, null, 2)}`,
-        },
-      ],
-    }),
+    body: JSON.stringify(body),
   });
 
   const data = await response.json();
