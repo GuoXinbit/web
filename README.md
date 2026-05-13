@@ -18,9 +18,9 @@ The admin dashboard uses Cloudflare Pages Functions:
 
 - `ADMIN_PASSWORD` environment variable for login.
 - `STATS` KV binding for traffic events.
-- `AUDIO_BUCKET` R2 binding for saved audio recordings.
 - The audio spectrum tool states that use means consent to audio recording.
-- Recordings are uploaded to R2 and can be played or downloaded in admin.
+- Recordings are saved in the `STATS` KV namespace and can be played or downloaded in admin.
+- KV storage is intended for short recordings; the upload endpoint rejects files over 20 MB.
 
 ## Local preview
 

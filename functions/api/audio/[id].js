@@ -43,8 +43,8 @@ export async function onRequestGet({ request, env, params }) {
     return json({ ok: false }, { status: 401 });
   }
 
-  if (!env.AUDIO_BUCKET || !env.STATS) {
-    return json({ ok: false, error: "missing_audio_storage" }, { status: 500 });
+  if (!env.STATS) {
+    return json({ ok: false, error: "missing_stats_binding" }, { status: 500 });
   }
 
   const list = await env.STATS.list({ prefix: "audio:", limit: 1000 });
@@ -62,16 +62,23 @@ export async function onRequestGet({ request, env, params }) {
     return json({ ok: false }, { status: 404 });
   }
 
-  const object = await env.AUDIO_BUCKET.get(recording.key);
+  const encoded = await env.STATS.get(`audio-data:${recording.id}`);
 
-  if (!object) {
+  if (!encoded) {
     return json({ ok: false }, { status: 404 });
   }
 
-  return new Response(object.body, {
+  const binary = atob(encoded);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return new Response(bytes, {
     headers: {
       "content-type": recording.type || "audio/webm",
-      "content-disposition": `attachment; filename="${recording.id}.webm"`,
+      "content-disposition": `attachment; filename="${recording.filename || `${recording.id}.webm`}"`,
       "cache-control": "private, no-store",
     },
   });

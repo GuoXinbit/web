@@ -10,8 +10,8 @@ function json(data, init = {}) {
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!env.AUDIO_BUCKET || !env.STATS) {
-    return json({ ok: false, error: "missing_audio_storage" }, { status: 500 });
+  if (!env.STATS) {
+    return json({ ok: false, error: "missing_stats_binding" }, { status: 500 });
   }
 
   const formData = await request.formData();
@@ -25,24 +25,30 @@ export async function onRequestPost({ request, env }) {
   const createdAt = new Date().toISOString();
   const contentType = audio.type || "audio/webm";
   const extension = contentType.includes("mp4") ? "mp4" : "webm";
-  const objectKey = `recordings/${createdAt.slice(0, 10)}/${id}.${extension}`;
   const ip =
     request.headers.get("cf-connecting-ip") ||
     request.headers.get("x-forwarded-for") ||
     "";
 
-  await env.AUDIO_BUCKET.put(objectKey, audio.stream(), {
-    httpMetadata: { contentType },
-    customMetadata: {
-      id,
-      createdAt,
-      ip,
-    },
-  });
+  if (audio.size > 20 * 1024 * 1024) {
+    return json({ ok: false, error: "audio_too_large_for_kv" }, { status: 413 });
+  }
+
+  const buffer = await audio.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+
+  await env.STATS.put(`audio-data:${id}`, btoa(binary));
 
   const metadata = {
     id,
-    key: objectKey,
+    storage: "kv",
+    filename: `${id}.${extension}`,
     createdAt,
     ip,
     size: audio.size,
