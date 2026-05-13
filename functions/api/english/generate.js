@@ -18,33 +18,36 @@ async function generateArticle(env, learningData) {
     throw new Error("missing_deepseek_api_key");
   }
 
-  if (!learningData.unfamiliarItems.length) {
-    throw new Error("no_unfamiliar_words");
-  }
-
   const words = learningData.unfamiliarItems.map((item) => ({
     word: item.voc_spelling,
     response: item.first_response,
     isNew: item.is_new === true,
     order: item.order,
   }));
+  const hasTargetWords = words.length > 0;
+  const wordInstruction = hasTargetWords
+    ? `Target words:
+${JSON.stringify(words, null, 2)}
+
+Use as many target words as naturally possible, prioritizing the more abstract and difficult ones. The article must be logical, exam-like, and coherent, not a loose word list.`
+    : `There are no target words today.
+
+Create an original CET-6 / postgraduate English I level practice passage anyway. Select 12-20 useful advanced words or phrases from the article as highlighted vocabulary, prioritizing abstract academic words, policy/economics/technology words, and high-value exam vocabulary.`;
+
   const prompt = `
 You are writing an English reading passage for a Chinese learner preparing for CET-6 and China's postgraduate English I exam.
-
-Use as many target words as naturally possible, prioritizing the more abstract and difficult ones. The article must be logical, exam-like, and coherent, not a loose word list.
 
 Do not mention any AI system, model name, API provider, ChatGPT, DeepSeek, Gemini, or the fact that this was generated.
 Do not use asterisks, markdown emphasis, or symbols around target words in the article, questions, options, or explanations.
 
-Target words:
-${JSON.stringify(words, null, 2)}
+${wordInstruction}
 
 Requirements:
 - Write one article of 520-760 English words.
 - Topic should fit exam reading: society, education, technology, public policy, economy, environment, ethics, or urban life.
-- Use target words naturally. Do not force a word if it damages logic.
-- Return Chinese meanings for highlighted target words.
-- Highlight words should mainly come from the target list.
+- Use target words naturally when target words exist. Do not force a word if it damages logic.
+- Return Chinese meanings for highlighted words.
+- Highlight words should mainly come from the target list when target words exist; otherwise choose important exam-level words from the generated article.
 - Create 5 single-choice reading questions in the style of CET-6 and postgraduate English I.
 - Questions should follow the article's structure: early questions should refer to early paragraphs, middle questions to middle paragraphs, and the final question should test main idea, author's attitude, inference, or later-paragraph synthesis.
 - Each question must have four plausible options and one unambiguous correct answer.
@@ -202,10 +205,6 @@ export async function onRequestPost({ request, env }) {
       error: String(error?.message || error).slice(0, 400),
     });
 
-    const detail = error?.message === "no_unfamiliar_words"
-      ? "今天暂时没有可用于生成文章的目标词。"
-      : "生成服务暂时不可用，请稍后再试。";
-
-    return json({ ok: false, error: "generate_failed", detail }, { status: 500 });
+    return json({ ok: false, error: "generate_failed", detail: "生成服务暂时不可用，请稍后再试。" }, { status: 500 });
   }
 }
