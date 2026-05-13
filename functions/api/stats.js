@@ -38,6 +38,15 @@ async function isAuthorized(request, env) {
   return signature === expected;
 }
 
+async function readRecentRecords(env, keys, limit) {
+  const selected = [...keys]
+    .sort((a, b) => b.name.localeCompare(a.name))
+    .slice(0, limit);
+
+  const records = await Promise.all(selected.map((key) => env.STATS.get(key.name, "json")));
+  return records.filter(Boolean);
+}
+
 export async function onRequestGet({ request, env }) {
   if (!(await isAuthorized(request, env))) {
     return json({ ok: false }, { status: 401 });
@@ -52,33 +61,11 @@ export async function onRequestGet({ request, env }) {
   const englishFetchList = await env.STATS.list({ prefix: "english-fetch:", limit: 1000 });
   const englishArticleList = await env.STATS.list({ prefix: "english-article:", limit: 1000 });
   const englishAttemptList = await env.STATS.list({ prefix: "english-attempt:", limit: 1000 });
-  const events = [];
-  const recordings = [];
-  const englishRecords = [];
-
-  for (const key of list.keys) {
-    const value = await env.STATS.get(key.name, "json");
-
-    if (value) {
-      events.push(value);
-    }
-  }
-
-  for (const key of audioList.keys) {
-    const value = await env.STATS.get(key.name, "json");
-
-    if (value) {
-      recordings.push(value);
-    }
-  }
-
-  for (const key of [...englishFetchList.keys, ...englishArticleList.keys, ...englishAttemptList.keys]) {
-    const value = await env.STATS.get(key.name, "json");
-
-    if (value) {
-      englishRecords.push(value);
-    }
-  }
+  const [events, recordings, englishRecords] = await Promise.all([
+    readRecentRecords(env, list.keys, 240),
+    readRecentRecords(env, audioList.keys, 120),
+    readRecentRecords(env, [...englishFetchList.keys, ...englishArticleList.keys, ...englishAttemptList.keys], 160),
+  ]);
 
   events.sort((a, b) => new Date(b.time) - new Date(a.time));
   recordings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -90,7 +77,7 @@ export async function onRequestGet({ request, env }) {
   return json({
     ok: true,
     summary: {
-      total: events.length,
+      total: list.keys.length,
       today: events.filter((event) => event.time?.startsWith(today)).length,
       uniqueIps: uniqueIps.size,
     },
