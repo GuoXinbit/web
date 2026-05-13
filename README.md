@@ -1,11 +1,12 @@
-# New Project 2
+# Real-Time Audio Spectrum Analyzer
 
-A minimal static website prepared for GitHub and Cloudflare Pages.
+A responsive browser-based audio spectrum analyzer for desktop and mobile.
+It uses the Web Audio API to analyze microphone input in real time.
 
 ## Cloudflare Pages settings
 
 - Framework preset: None
-- Build command: `exit 0`
+- Build command: leave empty
 - Build output directory: `/`
 - Production branch: `main`
 
@@ -13,4 +14,10 @@ Cloudflare Pages can deploy this project directly from the repository root.
 
 ## Local preview
 
-Open `index.html` in a browser, or serve the folder with any static file server.
+Serve the folder from `localhost` so microphone access works in the browser:
+
+```powershell
+python -m http.server 8080
+```
+
+Then open `http://localhost:8080`.

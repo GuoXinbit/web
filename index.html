@@ -1,51 +1,109 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="A simple website starter ready for GitHub and Cloudflare Pages."
+      content="实时麦克风声音频谱分析网页，适用于手机和电脑。"
     />
-    <title>New Project 2</title>
+    <title>实时声音频谱分析器</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="page">
-      <section class="intro" aria-labelledby="page-title">
-        <p class="eyebrow">Cloudflare Pages Starter</p>
-        <h1 id="page-title">New Project 2</h1>
-        <p class="lede">
-          A clean static website foundation connected to Git and ready to
-          publish on Cloudflare Pages.
-        </p>
-        <div class="actions" aria-label="Primary actions">
-          <a class="button primary" href="https://dash.cloudflare.com/" rel="noreferrer">
-            Open Cloudflare
-          </a>
-          <a class="button secondary" href="https://github.com/" rel="noreferrer">
-            Open GitHub
-          </a>
-        </div>
+    <main class="app" aria-labelledby="app-title">
+      <section class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Live Audio Spectrum</p>
+            <h1 id="app-title">实时声音频谱分析器</h1>
+          </div>
+          <div class="meter" aria-label="输入音量">
+            <span class="meter-fill" data-level></span>
+          </div>
+        </header>
+
+        <section class="visualizer" aria-label="实时频谱图">
+          <canvas id="spectrum" aria-label="声音频谱画布"></canvas>
+          <div class="idle" data-idle>
+            <strong>等待麦克风输入</strong>
+            <span>点击开始后，允许浏览器使用麦克风。</span>
+          </div>
+          <div class="frequency-scale" aria-hidden="true">
+            <span>20 Hz</span>
+            <span>1 kHz</span>
+            <span>5 kHz</span>
+            <span>20 kHz</span>
+          </div>
+        </section>
+
+        <section class="readouts" aria-label="实时读数">
+          <article>
+            <span class="label">主频</span>
+            <strong data-peak-frequency>-- Hz</strong>
+          </article>
+          <article>
+            <span class="label">峰值</span>
+            <strong data-peak-level>-- dB</strong>
+          </article>
+          <article>
+            <span class="label">采样率</span>
+            <strong data-sample-rate>-- kHz</strong>
+          </article>
+        </section>
       </section>
 
-      <section class="status" aria-label="Setup status">
-        <article>
-          <span class="step">01</span>
-          <h2>Edit</h2>
-          <p>Change this page in <code>index.html</code> and styles in <code>styles.css</code>.</p>
-        </article>
-        <article>
-          <span class="step">02</span>
-          <h2>Push</h2>
-          <p>Commit the files and push them to your GitHub repository.</p>
-        </article>
-        <article>
-          <span class="step">03</span>
-          <h2>Deploy</h2>
-          <p>Connect the repository to Cloudflare Pages with this folder as the output.</p>
-        </article>
-      </section>
+      <aside class="controls" aria-label="控制面板">
+        <div class="control-header">
+          <p class="eyebrow">Input</p>
+          <p class="status" data-status>未启动</p>
+        </div>
+
+        <button class="primary-button" type="button" data-toggle>
+          开始分析
+        </button>
+
+        <label class="field">
+          <span>灵敏度</span>
+          <input
+            type="range"
+            min="0.6"
+            max="2.2"
+            step="0.1"
+            value="1.2"
+            data-gain
+          />
+        </label>
+
+        <label class="field">
+          <span>平滑度</span>
+          <input
+            type="range"
+            min="0"
+            max="0.92"
+            step="0.02"
+            value="0.78"
+            data-smoothing
+          />
+        </label>
+
+        <label class="field">
+          <span>显示范围</span>
+          <select data-range>
+            <option value="2000">2 kHz</option>
+            <option value="5000" selected>5 kHz</option>
+            <option value="12000">12 kHz</option>
+            <option value="22000">全频段</option>
+          </select>
+        </label>
+
+        <div class="notice" role="status" data-message>
+          需要 HTTPS 或 localhost 才能访问麦克风。手机打开时请使用
+          https://hacker666.com。
+        </div>
+      </aside>
     </main>
+
+    <script src="./script.js" defer></script>
   </body>
 </html>
