@@ -36,6 +36,33 @@ function setMessage(text, isError = false) {
   message.classList.toggle("error", isError);
 }
 
+function startGenerationFeedback() {
+  const startedAt = Date.now();
+  const steps = [
+    "正在读取今日学习数据...",
+    "正在组织文章结构...",
+    "正在生成阅读文章...",
+    "正在生成单选题...",
+    "正在整理题目解析...",
+    "正在保存生成结果...",
+  ];
+  let stepIndex = 0;
+
+  setMessage(`${steps[stepIndex]} 请保持页面打开。`);
+
+  const timer = window.setInterval(() => {
+    const elapsed = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+    stepIndex = Math.min(stepIndex + 1, steps.length - 1);
+    setMessage(`${steps[stepIndex]} 已等待 ${elapsed} 秒，页面仍在工作。`);
+
+    if (generateButton.disabled) {
+      generateButton.textContent = `生成中 ${elapsed}s`;
+    }
+  }, 3500);
+
+  return () => window.clearInterval(timer);
+}
+
 function formatDate(value) {
   return new Intl.DateTimeFormat("zh-CN", {
     dateStyle: "medium",
@@ -343,7 +370,7 @@ async function fetchToday() {
 
 async function generateArticle() {
   setBusy(generateButton, true, "正在生成...");
-  setMessage("正在生成文章与题目，慢网下请保持页面打开。");
+  const stopFeedback = startGenerationFeedback();
 
   try {
     const response = await fetch("/api/english/generate", {
@@ -372,6 +399,7 @@ async function generateArticle() {
   } catch (error) {
     setMessage(`生成失败：${error.message || "请稍后重试"}`, true);
   } finally {
+    stopFeedback();
     setBusy(generateButton, false, "正在生成...");
   }
 }
