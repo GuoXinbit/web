@@ -1,7 +1,7 @@
 import { getTodayLearningData, isEnglishAuthorized, json, saveEnglishRecord } from "../_shared/english.js";
 
 function getOutputText(data) {
-  return data.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("") || "";
+  return data.choices?.[0]?.message?.content || "";
 }
 
 function parseModelJson(text) {
@@ -72,24 +72,27 @@ Requirements:
     required: ["title", "topic", "difficulty", "article", "used_words", "highlight_words", "chinese_summary"],
   };
 
+  const baseUrl = (env.GEMINI_BASE_URL || "https://bitexingai.com/v1").replace(/\/+$/, "");
   const model = env.GEMINI_MODEL || "gemini-2.5-flash";
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+  const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
-      "x-goog-api-key": env.GEMINI_API_KEY,
+      authorization: `Bearer ${env.GEMINI_API_KEY}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      contents: [
+      model,
+      temperature: 0.75,
+      messages: [
         {
-          parts: [{ text: prompt }],
+          role: "system",
+          content: "You return only valid JSON. Do not wrap JSON in Markdown fences.",
+        },
+        {
+          role: "user",
+          content: `${prompt}\n\nReturn JSON that matches this schema exactly:\n${JSON.stringify(schema, null, 2)}`,
         },
       ],
-      generationConfig: {
-        temperature: 0.75,
-        responseMimeType: "application/json",
-        responseJsonSchema: schema,
-      },
     }),
   });
 
