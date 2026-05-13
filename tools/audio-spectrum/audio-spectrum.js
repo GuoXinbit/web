@@ -7,10 +7,12 @@ const idle = document.querySelector("[data-idle]");
 const levelBar = document.querySelector("[data-level]");
 const peakFrequency = document.querySelector("[data-peak-frequency]");
 const peakLevel = document.querySelector("[data-peak-level]");
+const maxPeak = document.querySelector("[data-max-peak]");
 const sampleRate = document.querySelector("[data-sample-rate]");
 const gainControl = document.querySelector("[data-gain]");
 const smoothingControl = document.querySelector("[data-smoothing]");
 const rangeControl = document.querySelector("[data-range]");
+const resetMaxButton = document.querySelector("[data-reset-max]");
 
 let audioContext;
 let analyser;
@@ -25,6 +27,7 @@ let isRunning = false;
 let canvasWidth = 0;
 let canvasHeight = 0;
 let devicePixelRatioCache = window.devicePixelRatio || 1;
+let maxPeakDb = -Infinity;
 
 const state = {
   gain: Number(gainControl.value),
@@ -67,11 +70,79 @@ function formatFrequency(value) {
   return `${Math.round(value)} Hz`;
 }
 
+function getPlotArea(width, height) {
+  const compact = width < 520;
+
+  return {
+    left: compact ? 42 : 54,
+    right: compact ? 10 : 18,
+    top: 18,
+    bottom: compact ? 34 : 40,
+    width: Math.max(1, width - (compact ? 52 : 72)),
+    height: Math.max(1, height - (compact ? 52 : 58)),
+  };
+}
+
+function drawAxes(width, height) {
+  const plot = getPlotArea(width, height);
+  const maxFrequency = state.maxFrequency;
+  const xTicks =
+    maxFrequency <= 2000
+      ? [20, 500, 1000, 2000]
+      : maxFrequency <= 5000
+        ? [20, 1000, 2500, 5000]
+        : maxFrequency <= 12000
+          ? [20, 1000, 5000, 12000]
+          : [20, 1000, 5000, 10000, 20000];
+  const yTicks = [-20, -40, -60, -80, -100];
+
+  ctx.save();
+  ctx.font = "12px Inter, system-ui, sans-serif";
+  ctx.textBaseline = "middle";
+  ctx.strokeStyle = "rgba(242, 246, 248, 0.12)";
+  ctx.fillStyle = "rgba(242, 246, 248, 0.64)";
+  ctx.lineWidth = 1;
+
+  for (const db of yTicks) {
+    const y = plot.top + ((db + 100) / 80) * plot.height;
+    ctx.beginPath();
+    ctx.moveTo(plot.left, y);
+    ctx.lineTo(width - plot.right, y);
+    ctx.stroke();
+    ctx.textAlign = "right";
+    ctx.fillText(`${db}`, plot.left - 8, y);
+  }
+
+  ctx.textAlign = "left";
+  ctx.fillText("dB", 8, plot.top + 2);
+
+  for (const frequency of xTicks) {
+    const x = plot.left + (frequency / maxFrequency) * plot.width;
+    ctx.beginPath();
+    ctx.moveTo(x, plot.top);
+    ctx.lineTo(x, height - plot.bottom);
+    ctx.stroke();
+    ctx.textAlign = frequency > maxFrequency * 0.78 ? "right" : "center";
+    ctx.fillText(formatFrequency(frequency), x, height - 16);
+  }
+
+  ctx.strokeStyle = "rgba(242, 246, 248, 0.28)";
+  ctx.beginPath();
+  ctx.moveTo(plot.left, plot.top);
+  ctx.lineTo(plot.left, height - plot.bottom);
+  ctx.lineTo(width - plot.right, height - plot.bottom);
+  ctx.stroke();
+  ctx.restore();
+
+  return plot;
+}
+
 function drawIdleGrid() {
   const { width, height } = canvas.getBoundingClientRect();
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = "#0a0d10";
   ctx.fillRect(0, 0, width, height);
+  drawAxes(width, height);
 }
 
 function drawSpectrum() {
@@ -85,16 +156,18 @@ function drawSpectrum() {
   const rect = canvas.getBoundingClientRect();
   const width = rect.width;
   const height = rect.height;
+  const plot = getPlotArea(width, height);
   const nyquist = audioContext.sampleRate / 2;
   const visibleBins = Math.max(
     8,
     Math.min(dataArray.length, Math.floor((state.maxFrequency / nyquist) * dataArray.length)),
   );
-  const barWidth = width / visibleBins;
+  const barWidth = plot.width / visibleBins;
 
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = "#0a0d10";
   ctx.fillRect(0, 0, width, height);
+  drawAxes(width, height);
 
   let peakIndex = 0;
   let peakValue = 0;
@@ -104,7 +177,7 @@ function drawSpectrum() {
     const raw = dataArray[i];
     const value = Math.min(255, raw * state.gain);
     const normalized = value / 255;
-    const barHeight = Math.max(2, normalized * height * 0.88);
+    const barHeight = Math.max(2, normalized * plot.height);
     const hue = 158 - normalized * 90;
 
     if (raw > peakValue) {
@@ -114,7 +187,12 @@ function drawSpectrum() {
 
     sum += raw;
     ctx.fillStyle = `hsl(${hue} 82% ${46 + normalized * 18}%)`;
-    ctx.fillRect(i * barWidth, height - barHeight, Math.max(1, barWidth - 1), barHeight);
+    ctx.fillRect(
+      plot.left + i * barWidth,
+      plot.top + plot.height - barHeight,
+      Math.max(1, barWidth - 1),
+      barHeight,
+    );
   }
 
   const gradient = ctx.createLinearGradient(0, 0, 0, height);
@@ -122,16 +200,21 @@ function drawSpectrum() {
   gradient.addColorStop(0.65, "rgba(51, 208, 162, 0.03)");
   gradient.addColorStop(1, "rgba(51, 208, 162, 0)");
   ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, width, height);
+  ctx.fillRect(plot.left, plot.top, plot.width, plot.height);
 
   const average = sum / visibleBins;
   const level = Math.min(100, Math.round((average / 130) * 100 * state.gain));
   const frequency = (peakIndex * audioContext.sampleRate) / analyser.fftSize;
   const db = peakValue > 0 ? 20 * Math.log10(peakValue / 255) : -Infinity;
 
+  if (Number.isFinite(db) && db > maxPeakDb) {
+    maxPeakDb = db;
+  }
+
   levelBar.style.width = `${level}%`;
   peakFrequency.textContent = formatFrequency(frequency);
   peakLevel.textContent = Number.isFinite(db) ? `${db.toFixed(1)} dB` : "-- dB";
+  maxPeak.textContent = Number.isFinite(maxPeakDb) ? `${maxPeakDb.toFixed(1)} dB` : "-- dB";
 
   animationId = requestAnimationFrame(drawSpectrum);
 }
@@ -282,6 +365,8 @@ async function stopAnalysis() {
   peakFrequency.textContent = "-- Hz";
   peakLevel.textContent = "-- dB";
   sampleRate.textContent = "-- kHz";
+  maxPeakDb = -Infinity;
+  maxPeak.textContent = "-- dB";
   drawIdleGrid();
 }
 
@@ -306,6 +391,13 @@ smoothingControl.addEventListener("input", () => {
 
 rangeControl.addEventListener("change", () => {
   state.maxFrequency = Number(rangeControl.value);
+  resizeCanvas();
+  drawIdleGrid();
+});
+
+resetMaxButton.addEventListener("click", () => {
+  maxPeakDb = -Infinity;
+  maxPeak.textContent = "-- dB";
 });
 
 window.addEventListener("resize", resizeCanvas);

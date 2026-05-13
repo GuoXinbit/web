@@ -366,7 +366,7 @@ canvas {
   position: absolute;
   inset-inline: clamp(10px, 2vw, 18px);
   bottom: 12px;
-  display: flex;
+  display: none;
   justify-content: space-between;
   color: rgba(242, 246, 248, 0.62);
   font-size: 0.76rem;
@@ -375,7 +375,7 @@ canvas {
 
 .readouts {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .readouts article {
@@ -667,6 +667,19 @@ code {
     grid-template-columns: 1fr 1fr;
   }
 
+  .readouts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .readouts article:nth-child(2) {
+    border-right: 0;
+  }
+
+  .readouts article:nth-child(3),
+  .readouts article:nth-child(4) {
+    border-top: 1px solid var(--line);
+  }
+
   .range-field {
     grid-column: 1 / -1;
   }
@@ -693,19 +706,6 @@ code {
   .frequency-scale span:nth-child(2),
   .frequency-scale span:nth-child(3) {
     display: none;
-  }
-
-  .readouts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .readouts article:nth-child(2) {
-    border-right: 0;
-  }
-
-  .readouts article:last-child {
-    grid-column: 1 / -1;
-    border-top: 1px solid var(--line);
   }
 
   .controls {

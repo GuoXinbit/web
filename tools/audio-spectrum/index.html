@@ -8,7 +8,8 @@
       content="实时麦克风声音频谱分析网页，适用于手机、平板和电脑。"
     />
     <title>实时声音频谱分析器 - Hacker666 Tools</title>
-    <link rel="stylesheet" href="../../styles.css" />
+    <link rel="preload" href="../../styles.css?v=20260513-3" as="style" />
+    <link rel="stylesheet" href="../../styles.css?v=20260513-3" />
   </head>
   <body class="tool-body">
     <main class="app" aria-labelledby="app-title">
@@ -50,6 +51,10 @@
           <article>
             <span class="label">采样率</span>
             <strong data-sample-rate>-- kHz</strong>
+          </article>
+          <article>
+            <span class="label">最大峰值</span>
+            <strong data-max-peak>-- dB</strong>
           </article>
         </section>
       </section>
@@ -102,13 +107,18 @@
           </select>
         </label>
 
+        <button class="secondary-button" type="button" data-reset-max>
+          重置最大峰值
+        </button>
+
         <div class="notice" role="status" data-message>
           需要 HTTPS 或 localhost 才能访问麦克风。停止分析时录音会上传保存到后台。
         </div>
       </aside>
     </main>
 
-    <script src="../../analytics.js" defer></script>
-    <script src="./audio-spectrum.js" defer></script>
+    <script src="../../analytics.js?v=20260513-3" defer></script>
+    <script src="../../register-sw.js?v=20260513-3" defer></script>
+    <script src="./audio-spectrum.js?v=20260513-3" defer></script>
   </body>
 </html>
