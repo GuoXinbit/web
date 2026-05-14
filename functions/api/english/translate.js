@@ -4,6 +4,26 @@ function sanitizeWord(value) {
   return String(value || "").trim().replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, "").slice(0, 64);
 }
 
+function sanitizeText(value) {
+  return String(value || "").trim().slice(0, 2500);
+}
+
+function parseJson(text, fallback) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const match = text.match(/\{[\s\S]*\}/);
+    if (match) {
+      try {
+        return JSON.parse(match[0]);
+      } catch {
+        return fallback;
+      }
+    }
+    return fallback;
+  }
+}
+
 export async function onRequestPost({ request, env }) {
   if (!(await isEnglishAuthorized(request, env))) {
     return json({ ok: false }, { status: 401 });
@@ -17,10 +37,11 @@ export async function onRequestPost({ request, env }) {
     return json({ ok: false }, { status: 400 });
   }
 
+  const paragraphText = sanitizeText(body.text);
   const word = sanitizeWord(body.word);
 
-  if (!word) {
-    return json({ ok: false, error: "missing_word" }, { status: 400 });
+  if (!word && !paragraphText) {
+    return json({ ok: false, error: "missing_text" }, { status: 400 });
   }
 
   if (!env.DEEPSEEK_API_KEY) {
@@ -28,7 +49,8 @@ export async function onRequestPost({ request, env }) {
   }
 
   const baseUrl = (env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, "");
-  const model = env.DEEPSEEK_MODEL || "deepseek-chat";
+  const model = env.DEEPSEEK_TRANSLATE_MODEL || "deepseek-v4-flash";
+  const isParagraph = Boolean(paragraphText);
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
@@ -45,7 +67,9 @@ export async function onRequestPost({ request, env }) {
         },
         {
           role: "user",
-          content: `Translate this English word or phrase into Chinese for a learner. Return JSON {"word":"...","meaning":"...","note":"..."}. Word: ${word}`,
+          content: isParagraph
+            ? `Translate this English paragraph into natural, accurate Chinese for a learner. Preserve the paragraph meaning, logic, and tone. Return JSON {"translation":"..."}. Paragraph: ${paragraphText}`
+            : `Translate this English word or phrase into Chinese for a learner. Return JSON {"word":"...","meaning":"...","note":"..."}. Word: ${word}`,
         },
       ],
     }),
@@ -56,13 +80,16 @@ export async function onRequestPost({ request, env }) {
     return json({ ok: false, error: data?.error?.message || "translate_failed" }, { status: 500 });
   }
 
-  const text = data.choices?.[0]?.message?.content || "";
-  let parsed;
+  const output = data.choices?.[0]?.message?.content || "";
+  const parsed = parseJson(output, isParagraph ? { translation: output.slice(0, 1200) } : { word, meaning: output.slice(0, 120), note: "" });
 
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    parsed = { word, meaning: text.slice(0, 120), note: "" };
+  if (isParagraph) {
+    return json({
+      ok: true,
+      result: {
+        translation: parsed.translation || "",
+      },
+    });
   }
 
   return json({

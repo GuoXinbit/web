@@ -28,6 +28,7 @@ let articles = [];
 let attempts = [];
 let activeMeanings = new Map();
 let translationCache = new Map();
+let paragraphTranslationCache = new Map();
 let activeArticle = null;
 let activeQuizSubmitted = false;
 
@@ -177,6 +178,12 @@ function cleanWord(value) {
   return String(value || "").trim().replace(/^\*+|\*+$/g, "");
 }
 
+function plainTextFromHtml(html) {
+  const template = document.createElement("template");
+  template.innerHTML = html;
+  return template.content.textContent.replace(/\s+/g, " ").trim();
+}
+
 function renderLearningData(data) {
   progressEl.textContent = `${data.progress.finished} / ${data.progress.total}`;
   percentEl.textContent = `${data.progress.percent}%`;
@@ -218,7 +225,18 @@ function highlightArticle(text, highlights) {
 
   return html
     .split(/\n{2,}/)
-    .map((paragraph) => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`)
+    .map((paragraph, index) => {
+      const content = paragraph.replace(/\n/g, "<br>");
+      return `
+        <section class="article-paragraph" data-paragraph-index="${index}">
+          <div class="paragraph-tools">
+            <button type="button" data-translate-paragraph>翻译本段</button>
+          </div>
+          <p>${content}</p>
+          <div class="paragraph-translation is-hidden" data-paragraph-translation></div>
+        </section>
+      `;
+    })
     .join("");
 }
 
@@ -374,6 +392,7 @@ function renderArticle(record) {
 
   const generated = record.generated;
   activeMeanings = new Map();
+  paragraphTranslationCache = new Map();
   articleStage.innerHTML = `
     <header class="article-header">
       <span class="status-pill">CET-6 / 考研英语一</span>
@@ -613,6 +632,58 @@ async function lookupWord(button) {
   }
 }
 
+async function translateParagraph(button) {
+  const paragraph = button.closest("[data-paragraph-index]");
+  const output = paragraph?.querySelector("[data-paragraph-translation]");
+  const paragraphText = plainTextFromHtml(paragraph?.querySelector("p")?.innerHTML || "");
+
+  if (!paragraph || !output || !paragraphText) {
+    return;
+  }
+
+  if (!output.classList.contains("is-hidden")) {
+    output.classList.add("is-hidden");
+    button.textContent = "翻译本段";
+    return;
+  }
+
+  if (paragraphTranslationCache.has(paragraphText)) {
+    output.textContent = paragraphTranslationCache.get(paragraphText);
+    output.classList.remove("is-hidden");
+    button.textContent = "隐藏译文";
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "翻译中...";
+  output.textContent = "正在翻译本段...";
+  output.classList.remove("is-hidden");
+
+  try {
+    const response = await fetch("/api/english/translate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text: paragraphText }),
+      credentials: "include",
+    });
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      throw new Error("paragraph_translate_failed");
+    }
+
+    const translation = data.result.translation || "";
+    paragraphTranslationCache.set(paragraphText, translation);
+    output.textContent = translation;
+    button.textContent = "隐藏译文";
+  } catch {
+    output.textContent = "本段翻译失败，请稍后再试。";
+    button.textContent = "重试翻译";
+  } finally {
+    button.disabled = false;
+  }
+}
+
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   setLoginBusy(true);
@@ -663,6 +734,12 @@ historyList.addEventListener("click", (event) => {
   renderArticle(record);
 });
 articleStage.addEventListener("click", (event) => {
+  const paragraphButton = event.target.closest("[data-translate-paragraph]");
+  if (paragraphButton) {
+    translateParagraph(paragraphButton);
+    return;
+  }
+
   const button = event.target.closest("[data-word], [data-lookup]");
 
   if (button?.dataset.word) {
