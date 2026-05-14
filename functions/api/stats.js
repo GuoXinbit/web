@@ -61,15 +61,18 @@ export async function onRequestGet({ request, env }) {
   const englishFetchList = await env.STATS.list({ prefix: "english-fetch:", limit: 1000 });
   const englishArticleList = await env.STATS.list({ prefix: "english-article:", limit: 1000 });
   const englishAttemptList = await env.STATS.list({ prefix: "english-attempt:", limit: 1000 });
-  const [events, recordings, englishRecords] = await Promise.all([
+  const errorList = await env.STATS.list({ prefix: "error:", limit: 1000 });
+  const [events, recordings, englishRecords, errors] = await Promise.all([
     readRecentRecords(env, list.keys, 240),
     readRecentRecords(env, audioList.keys, 120),
     readRecentRecords(env, [...englishFetchList.keys, ...englishArticleList.keys, ...englishAttemptList.keys], 160),
+    readRecentRecords(env, errorList.keys, 160),
   ]);
 
   events.sort((a, b) => new Date(b.time) - new Date(a.time));
   recordings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   englishRecords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  errors.sort((a, b) => new Date(b.time) - new Date(a.time));
 
   const today = new Date().toISOString().slice(0, 10);
   const uniqueIps = new Set(events.map((event) => event.ip).filter(Boolean));
@@ -84,5 +87,6 @@ export async function onRequestGet({ request, env }) {
     events: events.slice(0, 200),
     recordings: recordings.slice(0, 100),
     englishRecords: englishRecords.slice(0, 120),
+    errors: errors.slice(0, 120),
   });
 }

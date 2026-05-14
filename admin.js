@@ -9,6 +9,7 @@ const ipsEl = document.querySelector("[data-ips]");
 const eventsEl = document.querySelector("[data-events]");
 const recordingsEl = document.querySelector("[data-recordings]");
 const englishRecordsEl = document.querySelector("[data-english-records]");
+const errorsEl = document.querySelector("[data-errors]");
 const playerPanel = document.querySelector("[data-player-panel]");
 const playerTitle = document.querySelector("[data-player-title]");
 const audioPlayer = document.querySelector("[data-audio-player]");
@@ -100,6 +101,37 @@ function renderEnglishRecords(records = []) {
   }
 }
 
+function renderErrors(errors = []) {
+  if (!errorsEl) {
+    return;
+  }
+
+  errorsEl.innerHTML = "";
+
+  if (!errors.length) {
+    errorsEl.innerHTML = '<tr><td colspan="6">暂无错误记录</td></tr>';
+    return;
+  }
+
+  for (const error of errors) {
+    const row = document.createElement("tr");
+    const emailStatus = error.email?.sent
+      ? "已发送"
+      : error.email?.rateLimited
+        ? "频率限制"
+        : (error.email?.reason || "未发送");
+    row.innerHTML = `
+      <td>${escapeHtml(formatDate(error.time))}</td>
+      <td>${escapeHtml(error.level || "-")}</td>
+      <td>${escapeHtml(error.source || "-")}</td>
+      <td>${escapeHtml(error.path || "-")}</td>
+      <td>${escapeHtml(error.message || "-")}</td>
+      <td>${escapeHtml(emailStatus)}</td>
+    `;
+    errorsEl.append(row);
+  }
+}
+
 function renderStats(data) {
   totalEl.textContent = data.summary.total;
   todayEl.textContent = data.summary.today;
@@ -107,6 +139,7 @@ function renderStats(data) {
   renderEvents(data.events || []);
   renderRecordings(data.recordings || []);
   renderEnglishRecords(data.englishRecords || []);
+  renderErrors(data.errors || []);
 }
 
 recordingsEl.addEventListener("click", (event) => {
@@ -170,6 +203,9 @@ refreshButton?.addEventListener("click", () => {
     eventsEl.innerHTML = '<tr><td colspan="5">加载失败，请稍后再试</td></tr>';
     recordingsEl.innerHTML = '<tr><td colspan="6">加载失败，请稍后再试</td></tr>';
     englishRecordsEl.innerHTML = '<tr><td colspan="6">加载失败，请稍后再试</td></tr>';
+    if (errorsEl) {
+      errorsEl.innerHTML = '<tr><td colspan="6">加载失败，请稍后再试</td></tr>';
+    }
   });
 });
 
