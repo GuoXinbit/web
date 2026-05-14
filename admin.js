@@ -20,6 +20,16 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[char]);
+}
+
 function renderEvents(events) {
   eventsEl.innerHTML = "";
 
@@ -31,11 +41,11 @@ function renderEvents(events) {
   for (const event of events) {
     const row = document.createElement("tr");
     row.innerHTML = `
-      <td>${formatDate(event.time)}</td>
-      <td><code>${event.ip || "-"}</code></td>
-      <td>${event.path || "-"}</td>
-      <td>${event.device || "-"}</td>
-      <td>${event.referrer || "-"}</td>
+      <td>${escapeHtml(formatDate(event.time))}</td>
+      <td><code>${escapeHtml(event.ip || "-")}</code></td>
+      <td>${escapeHtml(event.path || "-")}</td>
+      <td>${escapeHtml(event.device || "-")}</td>
+      <td>${escapeHtml(event.referrer || "-")}</td>
     `;
     eventsEl.append(row);
   }
@@ -54,12 +64,12 @@ function renderRecordings(recordings = []) {
     const seconds = Math.max(0, Math.round((recording.durationMs || 0) / 1000));
     const sizeMb = recording.size ? `${(recording.size / 1024 / 1024).toFixed(2)} MB` : "-";
     row.innerHTML = `
-      <td>${formatDate(recording.createdAt)}</td>
-      <td><code>${recording.ip || "-"}</code></td>
+      <td>${escapeHtml(formatDate(recording.createdAt))}</td>
+      <td><code>${escapeHtml(recording.ip || "-")}</code></td>
       <td>${seconds}s</td>
       <td>${sizeMb}</td>
-      <td><button class="table-button" type="button" data-play-recording="${recording.id}">选择播放</button></td>
-      <td><a class="table-link" href="/api/audio/${recording.id}" target="_blank" rel="noreferrer">下载</a></td>
+      <td><button class="table-button" type="button" data-play-recording="${escapeHtml(recording.id)}">选择播放</button></td>
+      <td><a class="table-link" href="/api/audio/${encodeURIComponent(recording.id)}" target="_blank" rel="noreferrer">下载</a></td>
     `;
     recordingsEl.append(row);
   }
@@ -79,12 +89,12 @@ function renderEnglishRecords(records = []) {
     const unfamiliar = record.counts?.unfamiliar ?? "-";
     const status = record.ok === false ? "失败" : (record.generated?.title || "获取今日数据");
     row.innerHTML = `
-      <td>${formatDate(record.createdAt)}</td>
-      <td>${record.type || "-"}</td>
-      <td>${progress}</td>
-      <td>${unfamiliar}</td>
-      <td>${status}</td>
-      <td>${record.error || "-"}</td>
+      <td>${escapeHtml(formatDate(record.createdAt))}</td>
+      <td>${escapeHtml(record.type || "-")}</td>
+      <td>${escapeHtml(progress)}</td>
+      <td>${escapeHtml(unfamiliar)}</td>
+      <td>${escapeHtml(status)}</td>
+      <td>${escapeHtml(record.error || "-")}</td>
     `;
     englishRecordsEl.append(row);
   }

@@ -1,15 +1,15 @@
-const CACHE_NAME = "hacker666-tools-20260514-6";
+const CACHE_NAME = "hacker666-tools-20260514-7";
 const CORE_ASSETS = [
   "/",
   "/admin.html",
   "/tools/audio-spectrum/",
   "/tools/english-learning/",
-  "/styles.css?v=20260514-6",
-  "/analytics.js?v=20260514-6",
-  "/admin.js?v=20260514-6",
-  "/register-sw.js?v=20260514-6",
-  "/tools/audio-spectrum/audio-spectrum.js?v=20260514-6",
-  "/tools/english-learning/english-learning.js?v=20260514-6",
+  "/styles.css?v=20260514-7",
+  "/analytics.js?v=20260514-7",
+  "/admin.js?v=20260514-7",
+  "/register-sw.js?v=20260514-7",
+  "/tools/audio-spectrum/audio-spectrum.js?v=20260514-7",
+  "/tools/english-learning/english-learning.js?v=20260514-7",
 ];
 
 self.addEventListener("install", (event) => {
@@ -28,6 +28,12 @@ self.addEventListener("activate", (event) => {
       .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
       .then(() => self.clients.claim()),
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("fetch", (event) => {

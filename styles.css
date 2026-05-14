@@ -41,6 +41,14 @@ a {
   text-decoration: none;
 }
 
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
 button,
 input,
 select {
@@ -237,6 +245,17 @@ h3 {
 
 .tool-card.active {
   border-color: rgba(51, 208, 162, 0.65);
+}
+
+.nav-links a:hover,
+.secondary-link:hover,
+.back-link:hover,
+.tool-card.active:hover,
+.tool-card.active:focus-visible,
+.table-button:hover,
+.table-link:hover {
+  border-color: rgba(51, 208, 162, 0.55);
+  color: var(--primary);
 }
 
 .tool-card .status-pill {
@@ -1355,6 +1374,25 @@ code {
   .controls {
     grid-template-columns: 1fr;
     margin-top: 8px;
+  }
+
+  .hero-actions > *,
+  .nav-links a,
+  .primary-button,
+  .secondary-button,
+  .secondary-link {
+    width: 100%;
+  }
+
+  .quiz-options label {
+    grid-template-columns: 18px 30px minmax(0, 1fr);
+    gap: 9px;
+    padding: 10px;
+  }
+
+  .option-key {
+    width: 26px;
+    height: 26px;
   }
 }
 
