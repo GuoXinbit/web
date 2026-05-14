@@ -1,31 +1,31 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta
       name="description"
-      content="鍩轰簬澧ㄥⅷ鑳屽崟璇嶄粖鏃ュ涔犺褰曠敓鎴愯嫳璇槄璇绘枃绔狅紝閫傞厤鎵嬫満銆佸钩鏉垮拰鐢佃剳銆?
+      content="基于墨墨背单词今日学习记录生成英语阅读文章，适配手机、平板和电脑。"
     />
-    <title>鑻辫瀛︿範鏂囩珷鐢熸垚鍣?- Hacker666 Tools</title>
-    <link rel="preload" href="../../styles.css?v=20260514-5" as="style" />
-    <link rel="stylesheet" href="../../styles.css?v=20260514-5" />
+    <title>英语学习文章生成器 - Hacker666 Tools</title>
+    <link rel="preload" href="../../styles.css?v=20260514-6" as="style" />
+    <link rel="stylesheet" href="../../styles.css?v=20260514-6" />
   </head>
   <body class="english-body">
     <main class="english-shell">
       <section class="english-lock" data-lock-panel>
         <a class="back-link" href="../../">Hacker666 Tools</a>
         <p class="eyebrow">English Learning</p>
-        <h1>鑻辫瀛︿範鏂囩珷鐢熸垚鍣?/h1>
+        <h1>英语学习文章生成器</h1>
         <p>
-          杈撳叆璁块棶瀵嗙爜鍚庯紝鍙互璇诲彇浠婃棩澧ㄥⅷ瀛︿範杩涘害鍜屼笉鐔熸倝鍗曡瘝锛屽苟鐢熸垚涓€绡囬€傚悎鍏骇/鑰冪爺鑻辫涓€闅惧害鐨勯槄璇绘枃绔犮€?
+          输入访问密码后，可以读取今日墨墨学习进度和不熟悉单词，并生成一篇适合六级/考研英语一难度的阅读文章。
         </p>
         <form class="login-form" data-english-login>
           <label>
-            <span>璁块棶瀵嗙爜</span>
+            <span>访问密码</span>
             <input type="password" name="password" autocomplete="current-password" required />
           </label>
-          <button class="primary-button" type="submit">杩涘叆瀛︿範椤?/button>
+          <button class="primary-button" type="submit">进入学习页</button>
           <p class="form-message" data-login-message></p>
         </form>
       </section>
@@ -35,52 +35,52 @@
           <div>
             <a class="back-link" href="../../">Hacker666 Tools</a>
             <p class="eyebrow">Daily Practice</p>
-            <h1>浠婃棩鑻辫寮哄寲闃呰</h1>
+            <h1>今日英语强化阅读</h1>
           </div>
           <div class="english-actions">
-            <button class="secondary-button" type="button" data-fetch-today>鑾峰彇瀛︿範杩涘害鍜屾柊鍗曡瘝</button>
-            <div class="mode-switch" role="radiogroup" aria-label="鐢熸垚妯″紡">
+            <button class="secondary-button" type="button" data-fetch-today>获取学习进度和新单词</button>
+            <div class="mode-switch" role="radiogroup" aria-label="生成模式">
               <label>
                 <input type="radio" name="generate-mode" value="fast" checked />
-                <span>蹇€?/span>
+                <span>快速</span>
               </label>
               <label>
                 <input type="radio" name="generate-mode" value="standard" />
-                <span>鏍囧噯</span>
+                <span>标准</span>
               </label>
               <label>
                 <input type="radio" name="generate-mode" value="thinking" />
-                <span>鎬濊€?/span>
+                <span>思考</span>
               </label>
             </div>
-            <button class="primary-button" type="button" data-generate>鐢熸垚鏂囩珷涓庨鐩?/button>
+            <button class="primary-button" type="button" data-generate>生成文章与题目</button>
           </div>
         </header>
 
-        <section class="learning-status" aria-label="浠婃棩瀛︿範鐘舵€?>
+        <section class="learning-status" aria-label="今日学习状态">
           <article>
-            <span>浠婃棩杩涘害</span>
+            <span>今日进度</span>
             <strong data-progress>-- / --</strong>
           </article>
           <article>
-            <span>瀹屾垚鐜?/span>
+            <span>完成率</span>
             <strong data-percent>--%</strong>
           </article>
           <article>
-            <span>涓嶇啛鎮夎瘝</span>
+            <span>不熟悉词</span>
             <strong data-unfamiliar-count>--</strong>
           </article>
           <article>
-            <span>鏂囩珷鍘嗗彶</span>
+            <span>文章历史</span>
             <strong data-history-count>--</strong>
           </article>
         </section>
 
-        <p class="notice" data-message>杩涘叆鍚庝細鑷姩鍔犺浇鏈€杩戠敓鎴愮殑鏂囩珷銆傞渶瑕佹柊鍐呭鏃跺厛鑾峰彇浠婃棩鏁版嵁锛屽啀鐢熸垚鏂囩珷銆?/p>
+        <p class="notice" data-message>进入后会自动加载最近生成的文章。需要新内容时先获取今日数据，再生成文章。</p>
         <div class="generation-status is-hidden" data-generation-status aria-live="polite">
           <div>
-            <strong data-generation-title>鍑嗗鐢熸垚</strong>
-            <span data-generation-detail>璇烽€夋嫨鐢熸垚妯″紡鍚庡紑濮嬨€?/span>
+            <strong data-generation-title>准备生成</strong>
+            <span data-generation-detail>请选择生成模式后开始。</span>
           </div>
           <div class="generation-progress" aria-hidden="true">
             <span data-generation-bar></span>
@@ -90,8 +90,8 @@
         <section class="english-layout">
           <article class="article-stage" data-article-stage>
             <div class="empty-state">
-              <strong>杩樻病鏈夐€夋嫨鏂囩珷</strong>
-              <span>鐐瑰嚮鍘嗗彶璁板綍鎴栫敓鎴愪竴绡囨柊鏂囩珷鍚庝細鏄剧ず鍦ㄨ繖閲屻€?/span>
+              <strong>还没有选择文章</strong>
+              <span>点击历史记录或生成一篇新文章后会显示在这里。</span>
             </div>
           </article>
 
@@ -99,20 +99,20 @@
             <section class="word-panel">
               <div class="section-heading compact">
                 <p class="eyebrow">Words</p>
-                <h2>浠婃棩涓嶇啛鎮夎瘝</h2>
+                <h2>今日不熟悉词</h2>
               </div>
               <div class="word-list" data-word-list>
-                <span class="muted-text">绛夊緟鑾峰彇浠婃棩鏁版嵁</span>
+                <span class="muted-text">等待获取今日数据</span>
               </div>
             </section>
 
             <section class="history-panel">
               <div class="section-heading compact">
                 <p class="eyebrow">History</p>
-                <h2>鐢熸垚鍘嗗彶</h2>
+                <h2>生成历史</h2>
               </div>
               <div class="history-list" data-history-list>
-                <span class="muted-text">姝ｅ湪鍔犺浇鍘嗗彶</span>
+                <span class="muted-text">正在加载历史</span>
               </div>
             </section>
           </aside>
@@ -121,14 +121,14 @@
     </main>
 
     <div class="meaning-popover is-hidden" data-popover role="dialog" aria-live="polite">
-      <button type="button" data-close-popover aria-label="鍏抽棴閲婁箟">脳</button>
+      <button type="button" data-close-popover aria-label="关闭释义">×</button>
       <strong data-popover-word></strong>
       <p data-popover-meaning></p>
       <span data-popover-note></span>
     </div>
 
-    <script src="../../analytics.js?v=20260514-5" defer></script>
-    <script src="../../register-sw.js?v=20260514-5" defer></script>
-    <script src="./english-learning.js?v=20260514-5" defer></script>
+    <script src="../../analytics.js?v=20260514-6" defer></script>
+    <script src="../../register-sw.js?v=20260514-6" defer></script>
+    <script src="./english-learning.js?v=20260514-6" defer></script>
   </body>
 </html>

@@ -1,15 +1,15 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta
       name="description"
-      content="瀹炴椂楹﹀厠椋庡０闊抽璋卞垎鏋愮綉椤碉紝閫傜敤浜庢墜鏈恒€佸钩鏉垮拰鐢佃剳銆?
+      content="实时麦克风声音频谱分析网页，适用于手机、平板和电脑。"
     />
-    <title>瀹炴椂澹伴煶棰戣氨鍒嗘瀽鍣?- Hacker666 Tools</title>
-    <link rel="preload" href="../../styles.css?v=20260514-5" as="style" />
-    <link rel="stylesheet" href="../../styles.css?v=20260514-5" />
+    <title>实时声音频谱分析器 - Hacker666 Tools</title>
+    <link rel="preload" href="../../styles.css?v=20260514-6" as="style" />
+    <link rel="stylesheet" href="../../styles.css?v=20260514-6" />
   </head>
   <body class="tool-body">
     <main class="app" aria-labelledby="app-title">
@@ -18,18 +18,18 @@
           <div>
             <a class="back-link" href="../../">Hacker666 Tools</a>
             <p class="eyebrow">Live Audio Spectrum</p>
-            <h1 id="app-title">瀹炴椂澹伴煶棰戣氨鍒嗘瀽鍣?/h1>
+            <h1 id="app-title">实时声音频谱分析器</h1>
           </div>
-          <div class="meter" aria-label="杈撳叆闊抽噺">
+          <div class="meter" aria-label="输入音量">
             <span class="meter-fill" data-level></span>
           </div>
         </header>
 
-        <section class="visualizer" aria-label="瀹炴椂棰戣氨鍥?>
-          <canvas id="spectrum" aria-label="澹伴煶棰戣氨鐢诲竷"></canvas>
+        <section class="visualizer" aria-label="实时频谱图">
+          <canvas id="spectrum" aria-label="声音频谱画布"></canvas>
           <div class="idle" data-idle>
-            <strong>绛夊緟楹﹀厠椋庤緭鍏?/strong>
-            <span>鏈伐鍏蜂細閲囬泦楹﹀厠椋庨煶棰戝苟淇濆瓨褰曢煶锛涚户缁娇鐢ㄥ嵆琛ㄧず鍚屾剰銆?/span>
+            <strong>等待麦克风输入</strong>
+            <span>本工具会采集麦克风音频并保存录音；继续使用即表示同意。</span>
           </div>
           <div class="frequency-scale" aria-hidden="true">
             <span>20 Hz</span>
@@ -39,42 +39,42 @@
           </div>
         </section>
 
-        <section class="readouts" aria-label="瀹炴椂璇绘暟">
+        <section class="readouts" aria-label="实时读数">
           <article>
-            <span class="label">涓婚</span>
+            <span class="label">主频</span>
             <strong data-peak-frequency>-- Hz</strong>
           </article>
           <article>
-            <span class="label">宄板€?/span>
+            <span class="label">峰值</span>
             <strong data-peak-level>-- dB</strong>
           </article>
           <article>
-            <span class="label">閲囨牱鐜?/span>
+            <span class="label">采样率</span>
             <strong data-sample-rate>-- kHz</strong>
           </article>
           <article>
-            <span class="label">鏈€澶у嘲鍊?/span>
+            <span class="label">最大峰值</span>
             <strong data-max-peak>-- dB</strong>
           </article>
         </section>
       </section>
 
-      <aside class="controls" aria-label="鎺у埗闈㈡澘">
+      <aside class="controls" aria-label="控制面板">
         <div class="control-header">
           <p class="eyebrow">Input</p>
-          <p class="status" data-status>鏈惎鍔?/p>
+          <p class="status" data-status>未启动</p>
         </div>
 
         <div class="recording-disclosure">
-          鏈伐鍏蜂細閲囬泦楹﹀厠椋庨煶棰戝苟淇濆瓨褰曢煶銆傜偣鍑诲紑濮嬪苟缁х画浣跨敤鍗宠〃绀哄悓鎰忓綍闊抽噰闆嗕笌淇濆瓨銆?
+          本工具会采集麦克风音频并保存录音。点击开始并继续使用即表示同意录音采集与保存。
         </div>
 
         <button class="primary-button" type="button" data-toggle>
-          寮€濮嬪垎鏋愬苟褰曢煶
+          开始分析并录音
         </button>
 
         <label class="field">
-          <span>鐏垫晱搴?/span>
+          <span>灵敏度</span>
           <input
             type="range"
             min="0.6"
@@ -86,7 +86,7 @@
         </label>
 
         <label class="field">
-          <span>骞虫粦搴?/span>
+          <span>平滑度</span>
           <input
             type="range"
             min="0"
@@ -98,27 +98,27 @@
         </label>
 
         <label class="field range-field">
-          <span>鏄剧ず鑼冨洿</span>
+          <span>显示范围</span>
           <select data-range>
             <option value="2000">2 kHz</option>
             <option value="5000" selected>5 kHz</option>
             <option value="12000">12 kHz</option>
-            <option value="22000">鍏ㄩ娈?/option>
+            <option value="22000">全频段</option>
           </select>
         </label>
 
         <button class="secondary-button" type="button" data-reset-max>
-          閲嶇疆鏈€澶у嘲鍊?
+          重置最大峰值
         </button>
 
         <div class="notice" role="status" data-message>
-          闇€瑕?HTTPS 鎴?localhost 鎵嶈兘璁块棶楹﹀厠椋庛€傚仠姝㈠垎鏋愭椂褰曢煶浼氫笂浼犱繚瀛樺埌鍚庡彴銆?
+          需要 HTTPS 或 localhost 才能访问麦克风。停止分析时录音会上传保存到后台。
         </div>
       </aside>
     </main>
 
-    <script src="../../analytics.js?v=20260514-5" defer></script>
-    <script src="../../register-sw.js?v=20260514-5" defer></script>
-    <script src="./audio-spectrum.js?v=20260514-5" defer></script>
+    <script src="../../analytics.js?v=20260514-6" defer></script>
+    <script src="../../register-sw.js?v=20260514-6" defer></script>
+    <script src="./audio-spectrum.js?v=20260514-6" defer></script>
   </body>
 </html>

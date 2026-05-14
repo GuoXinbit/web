@@ -1,15 +1,15 @@
-﻿const CACHE_NAME = "hacker666-tools-20260514-5";
+const CACHE_NAME = "hacker666-tools-20260514-6";
 const CORE_ASSETS = [
   "/",
   "/admin.html",
   "/tools/audio-spectrum/",
   "/tools/english-learning/",
-  "/styles.css?v=20260514-5",
-  "/analytics.js?v=20260514-5",
-  "/admin.js?v=20260514-5",
-  "/register-sw.js?v=20260514-5",
-  "/tools/audio-spectrum/audio-spectrum.js?v=20260514-5",
-  "/tools/english-learning/english-learning.js?v=20260514-5",
+  "/styles.css?v=20260514-6",
+  "/analytics.js?v=20260514-6",
+  "/admin.js?v=20260514-6",
+  "/register-sw.js?v=20260514-6",
+  "/tools/audio-spectrum/audio-spectrum.js?v=20260514-6",
+  "/tools/english-learning/english-learning.js?v=20260514-6",
 ];
 
 self.addEventListener("install", (event) => {
