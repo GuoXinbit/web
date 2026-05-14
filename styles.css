@@ -866,7 +866,7 @@ code {
 .paragraph-tools {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 6px;
+  margin: 8px 0 0;
 }
 
 .paragraph-tools button {

@@ -202,7 +202,7 @@ function renderLearningData(data) {
     .join("");
 }
 
-function highlightArticle(text, highlights) {
+function highlightArticle(text, highlights, translations = []) {
   let html = escapeHtml(text);
   const ordered = [...highlights].sort((a, b) => b.word.length - a.word.length);
 
@@ -227,13 +227,14 @@ function highlightArticle(text, highlights) {
     .split(/\n{2,}/)
     .map((paragraph, index) => {
       const content = paragraph.replace(/\n/g, "<br>");
+      const translation = translations[index] ? escapeHtml(translations[index]) : "";
       return `
         <section class="article-paragraph" data-paragraph-index="${index}">
+          <p>${content}</p>
           <div class="paragraph-tools">
             <button type="button" data-translate-paragraph>翻译本段</button>
           </div>
-          <p>${content}</p>
-          <div class="paragraph-translation is-hidden" data-paragraph-translation></div>
+          <div class="paragraph-translation is-hidden" data-paragraph-translation>${translation}</div>
         </section>
       `;
     })
@@ -255,7 +256,7 @@ function wrapClickableWords(html) {
       continue;
     }
 
-    if (node.parentElement?.closest("button,a,select,textarea")) {
+    if (node.parentElement?.closest("button,a,select,textarea,.paragraph-translation")) {
       continue;
     }
 
@@ -405,7 +406,7 @@ function renderArticle(record) {
       </div>
     </header>
     <div class="article-content">
-      ${wrapClickableWords(highlightArticle(generated.article || "", generated.highlight_words || []))}
+      ${wrapClickableWords(highlightArticle(generated.article || "", generated.highlight_words || [], generated.paragraph_translations || []))}
     </div>
     ${renderQuiz(record)}
   `;
@@ -644,6 +645,14 @@ async function translateParagraph(button) {
   if (!output.classList.contains("is-hidden")) {
     output.classList.add("is-hidden");
     button.textContent = "翻译本段";
+    return;
+  }
+
+  const existingTranslation = output.textContent.trim();
+  if (existingTranslation) {
+    paragraphTranslationCache.set(paragraphText, existingTranslation);
+    output.classList.remove("is-hidden");
+    button.textContent = "\u9690\u85cf\u8bd1\u6587";
     return;
   }
 

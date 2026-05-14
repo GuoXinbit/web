@@ -177,6 +177,7 @@ Requirements:
 - Each question must have four plausible options and one unambiguous correct answer.
 - Explanations must be rigorous in Chinese: explain why the correct option is correct and why the distractors are wrong.
 - Include paragraph breaks using "\\n\\n".
+- Also generate paragraph_translations: one natural Chinese translation for each article paragraph, in the same order as the article paragraphs. The number of translations must exactly match the number of article paragraphs.
 `;
 
   const schema = {
@@ -187,6 +188,7 @@ Requirements:
       topic: { type: "string" },
       difficulty: { type: "string" },
       article: { type: "string" },
+      paragraph_translations: { type: "array", items: { type: "string" } },
       used_words: { type: "array", items: { type: "string" } },
       highlight_words: {
         type: "array",
@@ -234,7 +236,7 @@ Requirements:
         },
       },
     },
-    required: ["title", "topic", "difficulty", "article", "used_words", "highlight_words", "chinese_summary", "questions"],
+    required: ["title", "topic", "difficulty", "article", "paragraph_translations", "used_words", "highlight_words", "chinese_summary", "questions"],
   };
 
   const baseUrl = (env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, "");
@@ -273,7 +275,7 @@ Requirements:
     response_format: {
       type: "json_object",
     },
-    max_tokens: 4096,
+    max_tokens: 8192,
     messages: [
       {
         role: "system",
@@ -292,6 +294,10 @@ Requirements:
 
   if (!parsed?.article || !parsed?.title || !Array.isArray(parsed.questions)) {
     throw new Error("invalid_generation_output");
+  }
+
+  if (!Array.isArray(parsed.paragraph_translations)) {
+    parsed.paragraph_translations = [];
   }
 
   return parsed;
