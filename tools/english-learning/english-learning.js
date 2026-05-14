@@ -2,6 +2,7 @@ const lockPanel = document.querySelector("[data-lock-panel]");
 const appPanel = document.querySelector("[data-english-app]");
 const loginForm = document.querySelector("[data-english-login]");
 const loginMessage = document.querySelector("[data-login-message]");
+const loginButton = loginForm.querySelector("button[type='submit']");
 const fetchButton = document.querySelector("[data-fetch-today]");
 const generateButton = document.querySelector("[data-generate]");
 const modeInputs = [...document.querySelectorAll("input[name='generate-mode']")];
@@ -34,6 +35,12 @@ function setBusy(button, busy, text) {
   button.disabled = busy;
   button.dataset.idleText = button.dataset.idleText || button.textContent;
   button.textContent = busy ? text : button.dataset.idleText;
+}
+
+function setLoginBusy(busy) {
+  loginButton.disabled = busy;
+  loginButton.dataset.idleText = loginButton.dataset.idleText || loginButton.textContent;
+  loginButton.textContent = busy ? "正在进入..." : loginButton.dataset.idleText;
 }
 
 function setMessage(text, isError = false) {
@@ -608,23 +615,37 @@ async function lookupWord(button) {
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  setLoginBusy(true);
   loginMessage.textContent = "正在验证...";
 
-  const response = await fetch("/api/english/session", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ password: loginForm.password.value }),
-    credentials: "include",
-  });
+  try {
+    const response = await fetch("/api/english/session", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ password: loginForm.password.value }),
+      credentials: "include",
+    });
 
-  if (!response.ok) {
-    loginMessage.textContent = "密码错误";
-    return;
+    if (!response.ok) {
+      loginMessage.textContent = "密码错误";
+      return;
+    }
+
+    loginMessage.textContent = "验证成功，正在打开页面...";
+    loginForm.reset();
+    lockPanel.classList.add("is-hidden");
+    appPanel.classList.remove("is-hidden");
+    setMessage("已进入页面，正在加载历史记录和今日数据...");
+    historyList.innerHTML = '<span class="muted-text">正在加载历史记录</span>';
+
+    loadHistory().catch(() => {
+      setMessage("已进入页面，但历史记录加载较慢或失败。可以稍后刷新，或直接获取今日学习进度。", true);
+    });
+  } catch {
+    loginMessage.textContent = "网络响应较慢，请检查网络后再试。";
+  } finally {
+    setLoginBusy(false);
   }
-
-  loginMessage.textContent = "";
-  loginForm.reset();
-  await loadHistory();
 });
 
 fetchButton.addEventListener("click", fetchToday);
