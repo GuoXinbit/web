@@ -1,7 +1,7 @@
 import { getTodayLearningData, isEnglishAuthorized, json, saveEnglishRecord } from "../_shared/english.js";
 
 function getOutputText(data) {
-  return data.choices?.[0]?.message?.content || "";
+  return data.choices?.[0]?.message?.content || data.choices?.[0]?.message?.reasoning_content || "";
 }
 
 function parseModelJson(text) {
@@ -20,7 +20,7 @@ class RateLimitError extends Error {
   }
 }
 
-function getModeConfig(mode) {
+export function getModeConfig(mode) {
   const configs = {
     fast: {
       key: "fast",
@@ -43,6 +43,25 @@ function getModeConfig(mode) {
   };
 
   return configs[mode] || configs.fast;
+}
+
+async function requestDeepSeek(env, baseUrl, body) {
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await response.json();
+
+  if (!response.ok) {
+    console.error("english_generation_provider_failed", data?.error?.message || response.status);
+    throw new Error("generation_provider_failed");
+  }
+
+  return data;
 }
 
 function getGenerationWindow(now = new Date()) {
@@ -219,8 +238,38 @@ Requirements:
   };
 
   const baseUrl = (env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, "");
+  let qualityPlan = "";
+
+  if (config.key !== "fast") {
+    const planBody = {
+      model: config.model,
+      response_format: {
+        type: "json_object",
+      },
+      max_tokens: 1200,
+      messages: [
+        {
+          role: "system",
+          content: "You return only valid compact JSON. Do not wrap JSON in Markdown fences.",
+        },
+        {
+          role: "user",
+          content: `Create a compact quality blueprint for this CET-6 / postgraduate English I reading task. Include title direction, thesis, 5 paragraph roles, 5 question focuses, and 12-20 advanced vocabulary candidates. Do not write the full article.\n\n${wordInstruction}`,
+        },
+      ],
+    };
+
+    if (config.thinking) {
+      planBody.thinking = { type: "enabled" };
+      planBody.reasoning_effort = "high";
+    }
+
+    const planData = await requestDeepSeek(env, baseUrl, planBody);
+    qualityPlan = getOutputText(planData).slice(0, 6000);
+  }
+
   const body = {
-    model: config.model,
+    model: config.key === "fast" ? config.model : "deepseek-v4-flash",
     response_format: {
       type: "json_object",
     },
@@ -232,31 +281,12 @@ Requirements:
       },
       {
         role: "user",
-        content: `${prompt}\n\nReturn JSON that matches this schema exactly:\n${JSON.stringify(schema, null, 2)}`,
+        content: `${prompt}${qualityPlan ? `\n\nUse this higher-quality planning blueprint when writing the final article and questions:\n${qualityPlan}` : ""}\n\nReturn JSON that matches this schema exactly:\n${JSON.stringify(schema, null, 2)}`,
       },
     ],
   };
 
-  if (config.thinking) {
-    body.thinking = { type: "enabled" };
-    body.reasoning_effort = "high";
-  }
-
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    console.error("english_generation_provider_failed", data?.error?.message || response.status);
-    throw new Error("generation_provider_failed");
-  }
+  const data = await requestDeepSeek(env, baseUrl, body);
 
   const parsed = parseModelJson(getOutputText(data));
 
@@ -267,7 +297,7 @@ Requirements:
   return parsed;
 }
 
-async function runGenerationJob(env, jobId, modeConfig, ip) {
+export async function runGenerationJob(env, jobId, modeConfig, ip) {
   const createdAt = new Date().toISOString();
   try {
     await env.STATS.put(`english-job:${jobId}`, JSON.stringify({
@@ -348,7 +378,7 @@ async function runGenerationJob(env, jobId, modeConfig, ip) {
   }
 }
 
-export async function onRequestPost({ request, env, waitUntil }) {
+export async function onRequestPost({ request, env }) {
   if (!(await isEnglishAuthorized(request, env))) {
     return json({ ok: false }, { status: 401 });
   }
@@ -376,18 +406,11 @@ export async function onRequestPost({ request, env, waitUntil }) {
       status: "queued",
       mode: modeConfig.key,
       modeLabel: modeConfig.label,
+      ip,
       createdAt: now,
       updatedAt: now,
       message: "生成任务已开始",
     }));
-
-    const task = runGenerationJob(env, jobId, modeConfig, ip);
-
-    if (typeof waitUntil === "function") {
-      waitUntil(task);
-    } else {
-      task.catch(() => {});
-    }
 
     return json({ ok: true, pending: true, jobId, mode: modeConfig.key, modeLabel: modeConfig.label }, { status: 202 });
   } catch (error) {
