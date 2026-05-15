@@ -106,6 +106,12 @@ async function assertGenerationAllowed(env, now = new Date()) {
     throw new Error("missing_stats_binding");
   }
 
+  const temporaryUnlockUntil = Date.parse(env.ENGLISH_GENERATION_UNLOCK_UNTIL || "2026-05-15T20:00:00.000Z");
+
+  if (now.getTime() < temporaryUnlockUntil) {
+    return;
+  }
+
   const limitStartsAt = Date.parse(env.ENGLISH_GENERATION_LIMIT_START || "2026-05-14T20:00:00.000Z");
 
   if (now.getTime() < limitStartsAt) {
