@@ -13,6 +13,26 @@ const errorsEl = document.querySelector("[data-errors]");
 const playerPanel = document.querySelector("[data-player-panel]");
 const playerTitle = document.querySelector("[data-player-title]");
 const audioPlayer = document.querySelector("[data-audio-player]");
+const configForm = document.querySelector("[data-config-form]");
+const configMessage = document.querySelector("[data-config-message]");
+const configSummary = document.querySelector("[data-config-summary]");
+const balanceButton = document.querySelector("[data-check-balance]");
+
+const pageSize = 25;
+const state = {
+  data: {
+    events: [],
+    recordings: [],
+    englishRecords: [],
+    errors: [],
+  },
+  page: {
+    events: 1,
+    recordings: 1,
+    englishRecords: 1,
+    errors: 1,
+  },
+};
 
 function formatDate(value) {
   return new Intl.DateTimeFormat("zh-CN", {
@@ -31,15 +51,69 @@ function escapeHtml(value) {
   })[char]);
 }
 
-function renderEvents(events) {
-  eventsEl.innerHTML = "";
-
-  if (!events.length) {
-    eventsEl.innerHTML = '<tr><td colspan="5">暂无访问记录</td></tr>';
+function setButtonBusy(button, busy, text = "处理中...") {
+  if (!button) {
     return;
   }
 
-  for (const event of events) {
+  button.dataset.idleText = button.dataset.idleText || button.textContent;
+  button.disabled = busy;
+  button.textContent = busy ? text : button.dataset.idleText;
+}
+
+function getPager(name, tableBody) {
+  let pager = document.querySelector(`[data-pager="${name}"]`);
+
+  if (!pager) {
+    pager = document.createElement("div");
+    pager.className = "pager";
+    pager.dataset.pager = name;
+    tableBody.closest(".table-wrap")?.after(pager);
+  }
+
+  return pager;
+}
+
+function slicePage(name) {
+  const list = state.data[name] || [];
+  const totalPages = Math.max(1, Math.ceil(list.length / pageSize));
+  state.page[name] = Math.min(Math.max(1, state.page[name] || 1), totalPages);
+  const start = (state.page[name] - 1) * pageSize;
+  return {
+    rows: list.slice(start, start + pageSize),
+    total: list.length,
+    totalPages,
+    page: state.page[name],
+  };
+}
+
+function renderPager(name, tableBody) {
+  const { page, total, totalPages } = slicePage(name);
+  const pager = getPager(name, tableBody);
+
+  if (total <= pageSize) {
+    pager.innerHTML = "";
+    return;
+  }
+
+  pager.innerHTML = `
+    <button class="table-button" type="button" data-page-target="${name}" data-page-step="-1" ${page <= 1 ? "disabled" : ""}>上一页</button>
+    <span>第 ${page} / ${totalPages} 页，共 ${total} 条</span>
+    <button class="table-button" type="button" data-page-target="${name}" data-page-step="1" ${page >= totalPages ? "disabled" : ""}>下一页</button>
+  `;
+}
+
+function renderEvents() {
+  const { rows } = slicePage("events");
+  eventsEl.innerHTML = "";
+
+  if (!rows.length) {
+    eventsEl.innerHTML = '<tr><td colspan="5">暂无访问记录</td></tr>';
+    renderPager("events", eventsEl);
+    return;
+  }
+
+  for (const event of rows) {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${escapeHtml(formatDate(event.time))}</td>
@@ -50,17 +124,21 @@ function renderEvents(events) {
     `;
     eventsEl.append(row);
   }
+
+  renderPager("events", eventsEl);
 }
 
-function renderRecordings(recordings = []) {
+function renderRecordings() {
+  const { rows } = slicePage("recordings");
   recordingsEl.innerHTML = "";
 
-  if (!recordings.length) {
+  if (!rows.length) {
     recordingsEl.innerHTML = '<tr><td colspan="6">暂无录音</td></tr>';
+    renderPager("recordings", recordingsEl);
     return;
   }
 
-  for (const recording of recordings) {
+  for (const recording of rows) {
     const row = document.createElement("tr");
     const seconds = Math.max(0, Math.round((recording.durationMs || 0) / 1000));
     const sizeMb = recording.size ? `${(recording.size / 1024 / 1024).toFixed(2)} MB` : "-";
@@ -74,46 +152,58 @@ function renderRecordings(recordings = []) {
     `;
     recordingsEl.append(row);
   }
+
+  renderPager("recordings", recordingsEl);
 }
 
-function renderEnglishRecords(records = []) {
+function renderEnglishRecords() {
+  const { rows } = slicePage("englishRecords");
   englishRecordsEl.innerHTML = "";
 
-  if (!records.length) {
-    englishRecordsEl.innerHTML = '<tr><td colspan="6">暂无英语学习记录</td></tr>';
+  if (!rows.length) {
+    englishRecordsEl.innerHTML = '<tr><td colspan="7">暂无英语学习记录</td></tr>';
+    renderPager("englishRecords", englishRecordsEl);
     return;
   }
 
-  for (const record of records) {
+  for (const record of rows) {
     const row = document.createElement("tr");
     const progress = record.progress ? `${record.progress.finished || 0}/${record.progress.total || 0}` : "-";
     const unfamiliar = record.counts?.unfamiliar ?? "-";
     const status = record.ok === false ? "失败" : (record.generated?.title || "获取今日数据");
+    const usage = record.usage?.final?.total_tokens
+      ? `${record.usage.final.total_tokens} tokens`
+      : "-";
     row.innerHTML = `
       <td>${escapeHtml(formatDate(record.createdAt))}</td>
       <td>${escapeHtml(record.type || "-")}</td>
       <td>${escapeHtml(progress)}</td>
       <td>${escapeHtml(unfamiliar)}</td>
       <td>${escapeHtml(status)}</td>
+      <td>${escapeHtml(usage)}</td>
       <td>${escapeHtml(record.error || "-")}</td>
     `;
     englishRecordsEl.append(row);
   }
+
+  renderPager("englishRecords", englishRecordsEl);
 }
 
-function renderErrors(errors = []) {
+function renderErrors() {
   if (!errorsEl) {
     return;
   }
 
+  const { rows } = slicePage("errors");
   errorsEl.innerHTML = "";
 
-  if (!errors.length) {
+  if (!rows.length) {
     errorsEl.innerHTML = '<tr><td colspan="6">暂无错误记录</td></tr>';
+    renderPager("errors", errorsEl);
     return;
   }
 
-  for (const error of errors) {
+  for (const error of rows) {
     const row = document.createElement("tr");
     const emailStatus = error.email?.sent
       ? "已发送"
@@ -130,31 +220,58 @@ function renderErrors(errors = []) {
     `;
     errorsEl.append(row);
   }
+
+  renderPager("errors", errorsEl);
 }
 
 function renderStats(data) {
   totalEl.textContent = data.summary.total;
   todayEl.textContent = data.summary.today;
   ipsEl.textContent = data.summary.uniqueIps;
-  renderEvents(data.events || []);
-  renderRecordings(data.recordings || []);
-  renderEnglishRecords(data.englishRecords || []);
-  renderErrors(data.errors || []);
+  state.data.events = data.events || [];
+  state.data.recordings = data.recordings || [];
+  state.data.englishRecords = data.englishRecords || [];
+  state.data.errors = data.errors || [];
+  renderEvents();
+  renderRecordings();
+  renderEnglishRecords();
+  renderErrors();
 }
 
-recordingsEl.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-play-recording]");
-
-  if (!button) {
+function renderConfig(config) {
+  if (!configForm || !configSummary) {
     return;
   }
 
-  const id = button.dataset.playRecording;
-  playerPanel.classList.remove("is-hidden");
-  playerTitle.textContent = id;
-  audioPlayer.src = `/api/audio/${id}`;
-  audioPlayer.play().catch(() => {});
-});
+  for (const [key, value] of Object.entries(config)) {
+    const field = configForm.elements[key];
+
+    if (field && !key.endsWith("ApiKey")) {
+      field.value = value || "";
+    }
+  }
+
+  configSummary.innerHTML = `
+    <article><span>DeepSeek Token</span><strong>${config.deepseekApiKeySet ? escapeHtml(config.deepseekApiKeyMasked) : "未配置"}</strong></article>
+    <article><span>Resend Token</span><strong>${config.resendApiKeySet ? escapeHtml(config.resendApiKeyMasked) : "未配置"}</strong></article>
+    <article><span>报错邮箱</span><strong>${escapeHtml(config.errorAlertTo || "-")}</strong></article>
+    <article><span>最后更新</span><strong>${config.updatedAt ? escapeHtml(formatDate(config.updatedAt)) : "-"}</strong></article>
+  `;
+}
+
+async function loadConfig() {
+  if (!configForm) {
+    return;
+  }
+
+  const response = await fetch("/api/admin-config", { credentials: "include" });
+  if (!response.ok) {
+    throw new Error("config_failed");
+  }
+
+  const data = await response.json();
+  renderConfig(data.config || {});
+}
 
 async function loadStats() {
   const response = await fetch("/api/stats", { credentials: "include" });
@@ -170,43 +287,160 @@ async function loadStats() {
   }
 
   const data = await response.json();
-  loginPanel.classList.add("is-hidden");
-  dashboard.classList.remove("is-hidden");
   renderStats(data);
 }
 
-loginForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  loginMessage.textContent = "正在验证...";
+async function loadDashboard() {
+  eventsEl.innerHTML = '<tr><td colspan="5">正在加载...</td></tr>';
+  recordingsEl.innerHTML = '<tr><td colspan="6">正在加载...</td></tr>';
+  englishRecordsEl.innerHTML = '<tr><td colspan="7">正在加载...</td></tr>';
+  if (errorsEl) {
+    errorsEl.innerHTML = '<tr><td colspan="6">正在加载...</td></tr>';
+  }
 
-  const response = await fetch("/api/login", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      password: loginForm.password.value,
-    }),
-    credentials: "include",
-  });
+  await Promise.all([loadStats(), loadConfig()]);
+}
 
-  if (!response.ok) {
-    loginMessage.textContent = "密码错误或后台未配置密码。";
+recordingsEl.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-play-recording]");
+
+  if (!button) {
     return;
   }
 
-  loginForm.reset();
-  loginMessage.textContent = "";
-  await loadStats();
+  const id = button.dataset.playRecording;
+  playerPanel.classList.remove("is-hidden");
+  playerTitle.textContent = id;
+  audioPlayer.src = `/api/audio/${encodeURIComponent(id)}`;
+  audioPlayer.play().catch(() => {});
+});
+
+document.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-page-target]");
+
+  if (!button) {
+    return;
+  }
+
+  const name = button.dataset.pageTarget;
+  state.page[name] += Number(button.dataset.pageStep || 0);
+  ({
+    events: renderEvents,
+    recordings: renderRecordings,
+    englishRecords: renderEnglishRecords,
+    errors: renderErrors,
+  }[name]?.());
+});
+
+loginForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  setButtonBusy(loginForm.querySelector("button[type='submit']"), true, "正在进入...");
+  loginMessage.textContent = "正在验证...";
+
+  try {
+    const response = await fetch("/api/login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        password: loginForm.password.value,
+      }),
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      loginMessage.textContent = "密码错误或后台未配置密码。";
+      return;
+    }
+
+    loginForm.reset();
+    loginMessage.textContent = "";
+    loginPanel.classList.add("is-hidden");
+    dashboard.classList.remove("is-hidden");
+    loadDashboard().catch(() => {
+      eventsEl.innerHTML = '<tr><td colspan="5">加载失败，请稍后再试</td></tr>';
+      recordingsEl.innerHTML = '<tr><td colspan="6">加载失败，请稍后再试</td></tr>';
+      englishRecordsEl.innerHTML = '<tr><td colspan="7">加载失败，请稍后再试</td></tr>';
+      if (errorsEl) {
+        errorsEl.innerHTML = '<tr><td colspan="6">加载失败，请稍后再试</td></tr>';
+      }
+    });
+  } catch {
+    loginMessage.textContent = "网络响应较慢，请检查网络后再试。";
+  } finally {
+    setButtonBusy(loginForm.querySelector("button[type='submit']"), false);
+  }
 });
 
 refreshButton?.addEventListener("click", () => {
-  loadStats().catch(() => {
-    eventsEl.innerHTML = '<tr><td colspan="5">加载失败，请稍后再试</td></tr>';
-    recordingsEl.innerHTML = '<tr><td colspan="6">加载失败，请稍后再试</td></tr>';
-    englishRecordsEl.innerHTML = '<tr><td colspan="6">加载失败，请稍后再试</td></tr>';
-    if (errorsEl) {
-      errorsEl.innerHTML = '<tr><td colspan="6">加载失败，请稍后再试</td></tr>';
-    }
-  });
+  setButtonBusy(refreshButton, true, "刷新中...");
+  loadDashboard().finally(() => setButtonBusy(refreshButton, false));
 });
 
-loadStats().catch(() => {});
+configForm?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const submitButton = configForm.querySelector("button[type='submit']");
+  setButtonBusy(submitButton, true, "保存中...");
+  configMessage.textContent = "正在保存配置...";
+
+  const payload = Object.fromEntries(new FormData(configForm).entries());
+  for (const key of ["deepseekApiKey", "resendApiKey"]) {
+    if (!payload[key]) {
+      delete payload[key];
+    }
+  }
+
+  try {
+    const response = await fetch("/api/admin-config", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+      credentials: "include",
+    });
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "config_failed");
+    }
+
+    configForm.deepseekApiKey.value = "";
+    configForm.resendApiKey.value = "";
+    renderConfig(data.config || {});
+    configMessage.textContent = "配置已保存，后续请求会优先使用后台配置。";
+  } catch {
+    configMessage.textContent = "保存失败，请稍后再试。";
+  } finally {
+    setButtonBusy(submitButton, false);
+  }
+});
+
+balanceButton?.addEventListener("click", async () => {
+  setButtonBusy(balanceButton, true, "查询中...");
+  configMessage.textContent = "正在查询 DeepSeek 余额...";
+
+  try {
+    const response = await fetch("/api/deepseek-balance", { credentials: "include" });
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "balance_failed");
+    }
+
+    const balances = data.balance?.balance_infos || [];
+    const summary = balances
+      .map((item) => `${item.currency || "CNY"} ${item.total_balance || item.granted_balance || "0"}`)
+      .join("；");
+    configMessage.textContent = `DeepSeek 余额：${summary || "接口返回为空"}`;
+  } catch {
+    configMessage.textContent = "余额查询失败，请检查 DeepSeek Token 或 Base URL。";
+  } finally {
+    setButtonBusy(balanceButton, false);
+  }
+});
+
+loadDashboard().then(() => {
+  loginPanel.classList.add("is-hidden");
+  dashboard.classList.remove("is-hidden");
+}).catch(() => {
+  loginPanel.classList.remove("is-hidden");
+  dashboard.classList.add("is-hidden");
+});

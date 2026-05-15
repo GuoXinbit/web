@@ -1,4 +1,5 @@
 import { getTodayLearningData, isEnglishAuthorized, json, saveEnglishRecord } from "../_shared/english.js";
+import { getProviderConfig } from "../_shared/site-config.js";
 
 function getOutputText(data) {
   return data.choices?.[0]?.message?.content || data.choices?.[0]?.message?.reasoning_content || "";
@@ -20,24 +21,24 @@ class RateLimitError extends Error {
   }
 }
 
-export function getModeConfig(mode) {
+export function getModeConfig(mode, provider = {}) {
   const configs = {
     fast: {
       key: "fast",
       label: "快速",
-      model: "deepseek-v4-flash",
+      model: provider.deepseekFastModel || "deepseek-v4-flash",
       thinking: false,
     },
     standard: {
       key: "standard",
       label: "标准",
-      model: "deepseek-v4-pro",
+      model: provider.deepseekStandardModel || "deepseek-v4-pro",
       thinking: false,
     },
     thinking: {
       key: "thinking",
       label: "思考",
-      model: "deepseek-v4-pro",
+      model: provider.deepseekThinkingModel || "deepseek-v4-pro",
       thinking: true,
     },
   };
@@ -45,11 +46,11 @@ export function getModeConfig(mode) {
   return configs[mode] || configs.fast;
 }
 
-async function requestDeepSeek(env, baseUrl, body) {
-  const response = await fetch(`${baseUrl}/chat/completions`, {
+async function requestDeepSeek(provider, body) {
+  const response = await fetch(`${provider.deepseekBaseUrl}/chat/completions`, {
     method: "POST",
     headers: {
-      authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
+      authorization: `Bearer ${provider.deepseekApiKey}`,
       "content-type": "application/json",
     },
     body: JSON.stringify(body),
@@ -137,11 +138,13 @@ async function recordGenerationSuccess(env, createdAt) {
 }
 
 async function generateArticle(env, learningData, mode = "fast") {
-  if (!env.DEEPSEEK_API_KEY) {
+  const provider = await getProviderConfig(env);
+
+  if (!provider.deepseekApiKey) {
     throw new Error("missing_deepseek_api_key");
   }
 
-  const config = getModeConfig(mode);
+  const config = getModeConfig(mode, provider);
   const words = learningData.unfamiliarItems.map((item) => ({
     word: item.voc_spelling,
     response: item.first_response,
@@ -239,8 +242,8 @@ Requirements:
     required: ["title", "topic", "difficulty", "article", "paragraph_translations", "used_words", "highlight_words", "chinese_summary", "questions"],
   };
 
-  const baseUrl = (env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, "");
   let qualityPlan = "";
+  let planUsage = null;
 
   if (config.key !== "fast") {
     const planBody = {
@@ -266,12 +269,13 @@ Requirements:
       planBody.reasoning_effort = "high";
     }
 
-    const planData = await requestDeepSeek(env, baseUrl, planBody);
+    const planData = await requestDeepSeek(provider, planBody);
+    planUsage = planData.usage || null;
     qualityPlan = getOutputText(planData).slice(0, 6000);
   }
 
   const body = {
-    model: config.key === "fast" ? config.model : "deepseek-v4-flash",
+    model: config.key === "fast" ? config.model : provider.deepseekFinalModel,
     response_format: {
       type: "json_object",
     },
@@ -288,7 +292,7 @@ Requirements:
     ],
   };
 
-  const data = await requestDeepSeek(env, baseUrl, body);
+  const data = await requestDeepSeek(provider, body);
 
   const parsed = parseModelJson(getOutputText(data));
 
@@ -300,7 +304,15 @@ Requirements:
     parsed.paragraph_translations = [];
   }
 
-  return parsed;
+  return {
+    generated: parsed,
+    usage: {
+      plan: planUsage,
+      final: data.usage || null,
+      planModel: config.key !== "fast" ? config.model : "",
+      finalModel: body.model,
+    },
+  };
 }
 
 export async function runGenerationJob(env, jobId, modeConfig, ip) {
@@ -328,13 +340,15 @@ export async function runGenerationJob(env, jobId, modeConfig, ip) {
       message: "正在生成文章、题目和解析",
     }));
 
-    const generated = await generateArticle(env, learningData, modeConfig.key);
+    const generationResult = await generateArticle(env, learningData, modeConfig.key);
+    const generated = generationResult.generated;
     const record = {
       id: jobId,
       type: "article",
       mode: modeConfig.key,
       modeLabel: modeConfig.label,
-      model: modeConfig.model,
+      model: generationResult.usage?.finalModel || modeConfig.model,
+      usage: generationResult.usage,
       createdAt,
       ok: true,
       progress: learningData.progress,
@@ -402,7 +416,7 @@ export async function onRequestPost({ request, env }) {
       requestBody = {};
     }
 
-    const modeConfig = getModeConfig(requestBody.mode);
+    const modeConfig = getModeConfig(requestBody.mode, await getProviderConfig(env));
     const jobId = crypto.randomUUID();
     const now = new Date().toISOString();
     const ip = request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "";

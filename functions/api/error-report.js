@@ -1,3 +1,5 @@
+import { getProviderConfig } from "./_shared/site-config.js";
+
 function json(data, init = {}) {
   return new Response(JSON.stringify(data), {
     ...init,
@@ -34,7 +36,9 @@ async function sha256(value) {
 }
 
 async function sendAlertEmail(env, errorRecord) {
-  if (!env.RESEND_API_KEY || !env.ERROR_ALERT_FROM || !env.ERROR_ALERT_TO) {
+  const provider = await getProviderConfig(env);
+
+  if (!provider.resendApiKey || !provider.errorAlertFrom || !provider.errorAlertTo) {
     return { sent: false, reason: "missing_email_config" };
   }
 
@@ -61,12 +65,12 @@ async function sendAlertEmail(env, errorRecord) {
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
-      authorization: `Bearer ${env.RESEND_API_KEY}`,
+      authorization: `Bearer ${provider.resendApiKey}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      from: env.ERROR_ALERT_FROM,
-      to: env.ERROR_ALERT_TO.split(",").map((item) => item.trim()).filter(Boolean),
+      from: provider.errorAlertFrom,
+      to: provider.errorAlertTo.split(",").map((item) => item.trim()).filter(Boolean),
       subject,
       text: body,
     }),

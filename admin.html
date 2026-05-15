@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="robots" content="noindex,nofollow" />
     <title>后台 - Hacker666 Tools</title>
-    <link rel="preload" href="./styles.css?v=20260514-8" as="style" />
-    <link rel="stylesheet" href="./styles.css?v=20260514-8" />
+    <link rel="preload" href="./styles.css?v=20260515-1" as="style" />
+    <link rel="stylesheet" href="./styles.css?v=20260515-1" />
   </head>
   <body>
     <main class="admin-shell">
@@ -53,6 +53,65 @@
             <span>独立 IP</span>
             <strong data-ips>--</strong>
           </article>
+        </section>
+
+        <section class="admin-section config-panel">
+          <div class="section-heading compact">
+            <p class="eyebrow">Settings</p>
+            <h2>网站配置中心</h2>
+          </div>
+          <div class="config-grid">
+            <form class="config-form" data-config-form>
+              <label>
+                <span>DeepSeek Base URL</span>
+                <input name="deepseekBaseUrl" type="url" placeholder="https://api.deepseek.com" />
+              </label>
+              <label>
+                <span>DeepSeek API Token（留空表示不修改）</span>
+                <input name="deepseekApiKey" type="password" autocomplete="new-password" placeholder="当前密钥不会明文显示" />
+              </label>
+              <label>
+                <span>快速模型</span>
+                <input name="deepseekFastModel" type="text" placeholder="deepseek-v4-flash" />
+              </label>
+              <label>
+                <span>标准/思考规划模型</span>
+                <input name="deepseekStandardModel" type="text" placeholder="deepseek-v4-pro" />
+              </label>
+              <label>
+                <span>??????</span>
+                <input name="deepseekThinkingModel" type="text" placeholder="deepseek-v4-pro" />
+              </label>
+              <label>
+                <span>最终文章模型</span>
+                <input name="deepseekFinalModel" type="text" placeholder="deepseek-v4-flash" />
+              </label>
+              <label>
+                <span>翻译模型</span>
+                <input name="deepseekTranslateModel" type="text" placeholder="deepseek-v4-flash" />
+              </label>
+              <label>
+                <span>Resend API Key（留空表示不修改）</span>
+                <input name="resendApiKey" type="password" autocomplete="new-password" placeholder="当前密钥不会明文显示" />
+              </label>
+              <label>
+                <span>报错发件邮箱</span>
+                <input name="errorAlertFrom" type="email" placeholder="alerts@mail.hacker666.com" />
+              </label>
+              <label>
+                <span>报错收件邮箱</span>
+                <input name="errorAlertTo" type="text" placeholder="2283159287@qq.com" />
+              </label>
+              <div class="config-actions">
+                <button class="primary-button" type="submit">保存配置</button>
+                <button class="secondary-button" type="button" data-check-balance>查询 DeepSeek 余额</button>
+              </div>
+              <p class="form-message" data-config-message></p>
+            </form>
+            <aside class="config-summary" data-config-summary>
+              <span class="muted-text">正在读取配置...</span>
+            </aside>
+          </div>
         </section>
 
         <section class="table-wrap" aria-label="最近访问">
@@ -121,12 +180,13 @@
                   <th>进度</th>
                   <th>不熟词</th>
                   <th>标题 / 状态</th>
+                  <th>Token</th>
                   <th>错误</th>
                 </tr>
               </thead>
               <tbody data-english-records>
                 <tr>
-                  <td colspan="6">正在加载...</td>
+                  <td colspan="7">正在加载...</td>
                 </tr>
               </tbody>
             </table>
@@ -161,7 +221,7 @@
       </section>
     </main>
 
-    <script src="./admin.js?v=20260514-8" defer></script>
-    <script src="./register-sw.js?v=20260514-8" defer></script>
+    <script src="./admin.js?v=20260515-1" defer></script>
+    <script src="./register-sw.js?v=20260515-1" defer></script>
   </body>
 </html>

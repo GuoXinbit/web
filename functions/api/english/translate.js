@@ -1,4 +1,5 @@
 import { isEnglishAuthorized, json } from "../_shared/english.js";
+import { getProviderConfig } from "../_shared/site-config.js";
 
 function sanitizeWord(value) {
   return String(value || "").trim().replace(/^[^A-Za-z]+|[^A-Za-z]+$/g, "").slice(0, 64);
@@ -44,17 +45,19 @@ export async function onRequestPost({ request, env }) {
     return json({ ok: false, error: "missing_text" }, { status: 400 });
   }
 
-  if (!env.DEEPSEEK_API_KEY) {
+  const provider = await getProviderConfig(env);
+
+  if (!provider.deepseekApiKey) {
     return json({ ok: false, error: "missing_deepseek_api_key" }, { status: 500 });
   }
 
-  const baseUrl = (env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, "");
-  const model = env.DEEPSEEK_TRANSLATE_MODEL || "deepseek-v4-flash";
+  const baseUrl = provider.deepseekBaseUrl;
+  const model = provider.deepseekTranslateModel;
   const isParagraph = Boolean(paragraphText);
   const response = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
-      authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
+      authorization: `Bearer ${provider.deepseekApiKey}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({
