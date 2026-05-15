@@ -29,6 +29,20 @@ function detectDevice(userAgent) {
   return "desktop";
 }
 
+function getGeo(request) {
+  const cf = request.cf || {};
+  return {
+    country: sanitize(cf.country || "", 80),
+    region: sanitize(cf.region || "", 120),
+    city: sanitize(cf.city || "", 120),
+    timezone: sanitize(cf.timezone || "", 120),
+  };
+}
+
+function formatGeo(geo) {
+  return [geo?.country, geo?.region, geo?.city].filter(Boolean).join(" / ") || "-";
+}
+
 async function sha256(value) {
   const data = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest("SHA-256", data);
@@ -51,6 +65,7 @@ async function sendAlertEmail(env, errorRecord) {
     `来源: ${errorRecord.source}`,
     `页面: ${errorRecord.path}`,
     `IP: ${errorRecord.ip || "-"}`,
+    `归属: ${formatGeo(errorRecord.geo)}`,
     `设备: ${errorRecord.device}`,
     `消息: ${errorRecord.message}`,
     `文件: ${errorRecord.filename || "-"}`,
@@ -123,6 +138,7 @@ export async function onRequestPost({ request, env }) {
     stack: sanitize(payload.stack || "", 4000),
     context: payload.context && typeof payload.context === "object" ? payload.context : null,
     ip,
+    geo: getGeo(request),
     device: detectDevice(userAgent),
     userAgent: userAgent.slice(0, 500),
     fingerprint,

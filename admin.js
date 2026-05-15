@@ -7,6 +7,7 @@ const totalEl = document.querySelector("[data-total]");
 const todayEl = document.querySelector("[data-today]");
 const ipsEl = document.querySelector("[data-ips]");
 const eventsEl = document.querySelector("[data-events]");
+const feedbacksEl = document.querySelector("[data-feedbacks]");
 const recordingsEl = document.querySelector("[data-recordings]");
 const englishRecordsEl = document.querySelector("[data-english-records]");
 const errorsEl = document.querySelector("[data-errors]");
@@ -22,12 +23,14 @@ const pageSize = 25;
 const state = {
   data: {
     events: [],
+    feedbacks: [],
     recordings: [],
     englishRecords: [],
     errors: [],
   },
   page: {
     events: 1,
+    feedbacks: 1,
     recordings: 1,
     englishRecords: 1,
     errors: 1,
@@ -35,10 +38,15 @@ const state = {
 };
 
 function formatDate(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
   return new Intl.DateTimeFormat("zh-CN", {
     dateStyle: "short",
     timeStyle: "medium",
-  }).format(new Date(value));
+  }).format(date);
 }
 
 function escapeHtml(value) {
@@ -49,6 +57,10 @@ function escapeHtml(value) {
     '"': "&quot;",
     "'": "&#39;",
   })[char]);
+}
+
+function formatGeo(geo) {
+  return [geo?.country, geo?.region, geo?.city].filter(Boolean).join(" / ") || "-";
 }
 
 function setButtonBusy(button, busy, text = "处理中...") {
@@ -103,13 +115,17 @@ function renderPager(name, tableBody) {
   `;
 }
 
+function setEmpty(tableBody, colspan, text, name) {
+  tableBody.innerHTML = `<tr><td colspan="${colspan}">${escapeHtml(text)}</td></tr>`;
+  renderPager(name, tableBody);
+}
+
 function renderEvents() {
   const { rows } = slicePage("events");
   eventsEl.innerHTML = "";
 
   if (!rows.length) {
-    eventsEl.innerHTML = '<tr><td colspan="5">暂无访问记录</td></tr>';
-    renderPager("events", eventsEl);
+    setEmpty(eventsEl, 6, "暂无访问记录", "events");
     return;
   }
 
@@ -118,6 +134,7 @@ function renderEvents() {
     row.innerHTML = `
       <td>${escapeHtml(formatDate(event.time))}</td>
       <td><code>${escapeHtml(event.ip || "-")}</code></td>
+      <td>${escapeHtml(formatGeo(event.geo))}</td>
       <td>${escapeHtml(event.path || "-")}</td>
       <td>${escapeHtml(event.device || "-")}</td>
       <td>${escapeHtml(event.referrer || "-")}</td>
@@ -128,13 +145,37 @@ function renderEvents() {
   renderPager("events", eventsEl);
 }
 
+function renderFeedbacks() {
+  const { rows } = slicePage("feedbacks");
+  feedbacksEl.innerHTML = "";
+
+  if (!rows.length) {
+    setEmpty(feedbacksEl, 6, "暂无用户反馈", "feedbacks");
+    return;
+  }
+
+  for (const feedback of rows) {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${escapeHtml(formatDate(feedback.createdAt))}</td>
+      <td><code>${escapeHtml(feedback.ip || "-")}</code></td>
+      <td>${escapeHtml(formatGeo(feedback.geo))}</td>
+      <td>${escapeHtml(feedback.page || "-")}</td>
+      <td>${escapeHtml(feedback.contact || "-")}</td>
+      <td>${escapeHtml(feedback.message || "-")}</td>
+    `;
+    feedbacksEl.append(row);
+  }
+
+  renderPager("feedbacks", feedbacksEl);
+}
+
 function renderRecordings() {
   const { rows } = slicePage("recordings");
   recordingsEl.innerHTML = "";
 
   if (!rows.length) {
-    recordingsEl.innerHTML = '<tr><td colspan="6">暂无录音</td></tr>';
-    renderPager("recordings", recordingsEl);
+    setEmpty(recordingsEl, 7, "暂无录音", "recordings");
     return;
   }
 
@@ -145,6 +186,7 @@ function renderRecordings() {
     row.innerHTML = `
       <td>${escapeHtml(formatDate(recording.createdAt))}</td>
       <td><code>${escapeHtml(recording.ip || "-")}</code></td>
+      <td>${escapeHtml(formatGeo(recording.geo))}</td>
       <td>${seconds}s</td>
       <td>${sizeMb}</td>
       <td><button class="table-button" type="button" data-play-recording="${escapeHtml(recording.id)}">选择播放</button></td>
@@ -161,8 +203,7 @@ function renderEnglishRecords() {
   englishRecordsEl.innerHTML = "";
 
   if (!rows.length) {
-    englishRecordsEl.innerHTML = '<tr><td colspan="7">暂无英语学习记录</td></tr>';
-    renderPager("englishRecords", englishRecordsEl);
+    setEmpty(englishRecordsEl, 7, "暂无英语学习记录", "englishRecords");
     return;
   }
 
@@ -171,9 +212,7 @@ function renderEnglishRecords() {
     const progress = record.progress ? `${record.progress.finished || 0}/${record.progress.total || 0}` : "-";
     const unfamiliar = record.counts?.unfamiliar ?? "-";
     const status = record.ok === false ? "失败" : (record.generated?.title || "获取今日数据");
-    const usage = record.usage?.final?.total_tokens
-      ? `${record.usage.final.total_tokens} tokens`
-      : "-";
+    const usage = record.usage?.final?.total_tokens ? `${record.usage.final.total_tokens} tokens` : "-";
     row.innerHTML = `
       <td>${escapeHtml(formatDate(record.createdAt))}</td>
       <td>${escapeHtml(record.type || "-")}</td>
@@ -190,16 +229,11 @@ function renderEnglishRecords() {
 }
 
 function renderErrors() {
-  if (!errorsEl) {
-    return;
-  }
-
   const { rows } = slicePage("errors");
   errorsEl.innerHTML = "";
 
   if (!rows.length) {
-    errorsEl.innerHTML = '<tr><td colspan="6">暂无错误记录</td></tr>';
-    renderPager("errors", errorsEl);
+    setEmpty(errorsEl, 6, "暂无错误记录", "errors");
     return;
   }
 
@@ -229,10 +263,12 @@ function renderStats(data) {
   todayEl.textContent = data.summary.today;
   ipsEl.textContent = data.summary.uniqueIps;
   state.data.events = data.events || [];
+  state.data.feedbacks = data.feedbacks || [];
   state.data.recordings = data.recordings || [];
   state.data.englishRecords = data.englishRecords || [];
   state.data.errors = data.errors || [];
   renderEvents();
+  renderFeedbacks();
   renderRecordings();
   renderEnglishRecords();
   renderErrors();
@@ -245,16 +281,24 @@ function renderConfig(config) {
 
   for (const [key, value] of Object.entries(config)) {
     const field = configForm.elements[key];
+    if (!field || key.endsWith("ApiKey") || key.endsWith("Token") || key === "adminPassword") {
+      continue;
+    }
 
-    if (field && !key.endsWith("ApiKey")) {
+    if (field.type === "checkbox") {
+      field.checked = Boolean(value);
+    } else {
       field.value = value || "";
     }
   }
 
   configSummary.innerHTML = `
     <article><span>DeepSeek Token</span><strong>${config.deepseekApiKeySet ? escapeHtml(config.deepseekApiKeyMasked) : "未配置"}</strong></article>
+    <article><span>墨墨 Token</span><strong>${config.maimemoTokenSet ? escapeHtml(config.maimemoTokenMasked) : "未配置"}</strong></article>
     <article><span>Resend Token</span><strong>${config.resendApiKeySet ? escapeHtml(config.resendApiKeyMasked) : "未配置"}</strong></article>
-    <article><span>报错邮箱</span><strong>${escapeHtml(config.errorAlertTo || "-")}</strong></article>
+    <article><span>通知邮箱</span><strong>${escapeHtml(config.errorAlertTo || "-")}</strong></article>
+    <article><span>维护模式</span><strong>${config.maintenanceEnabled ? "已开启" : "已关闭"}</strong></article>
+    <article><span>后台密码</span><strong>${config.adminPasswordManaged ? "后台配置已接管" : "使用环境变量"}</strong></article>
     <article><span>最后更新</span><strong>${config.updatedAt ? escapeHtml(formatDate(config.updatedAt)) : "-"}</strong></article>
   `;
 }
@@ -291,12 +335,11 @@ async function loadStats() {
 }
 
 async function loadDashboard() {
-  eventsEl.innerHTML = '<tr><td colspan="5">正在加载...</td></tr>';
-  recordingsEl.innerHTML = '<tr><td colspan="6">正在加载...</td></tr>';
+  eventsEl.innerHTML = '<tr><td colspan="6">正在加载...</td></tr>';
+  feedbacksEl.innerHTML = '<tr><td colspan="6">正在加载...</td></tr>';
+  recordingsEl.innerHTML = '<tr><td colspan="7">正在加载...</td></tr>';
   englishRecordsEl.innerHTML = '<tr><td colspan="7">正在加载...</td></tr>';
-  if (errorsEl) {
-    errorsEl.innerHTML = '<tr><td colspan="6">正在加载...</td></tr>';
-  }
+  errorsEl.innerHTML = '<tr><td colspan="6">正在加载...</td></tr>';
 
   await Promise.all([loadStats(), loadConfig()]);
 }
@@ -326,6 +369,7 @@ document.addEventListener("click", (event) => {
   state.page[name] += Number(button.dataset.pageStep || 0);
   ({
     events: renderEvents,
+    feedbacks: renderFeedbacks,
     recordings: renderRecordings,
     englishRecords: renderEnglishRecords,
     errors: renderErrors,
@@ -334,16 +378,15 @@ document.addEventListener("click", (event) => {
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  setButtonBusy(loginForm.querySelector("button[type='submit']"), true, "正在进入...");
+  const submitButton = loginForm.querySelector("button[type='submit']");
+  setButtonBusy(submitButton, true, "正在进入...");
   loginMessage.textContent = "正在验证...";
 
   try {
     const response = await fetch("/api/login", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        password: loginForm.password.value,
-      }),
+      body: JSON.stringify({ password: loginForm.password.value }),
       credentials: "include",
     });
 
@@ -356,18 +399,11 @@ loginForm.addEventListener("submit", async (event) => {
     loginMessage.textContent = "";
     loginPanel.classList.add("is-hidden");
     dashboard.classList.remove("is-hidden");
-    loadDashboard().catch(() => {
-      eventsEl.innerHTML = '<tr><td colspan="5">加载失败，请稍后再试</td></tr>';
-      recordingsEl.innerHTML = '<tr><td colspan="6">加载失败，请稍后再试</td></tr>';
-      englishRecordsEl.innerHTML = '<tr><td colspan="7">加载失败，请稍后再试</td></tr>';
-      if (errorsEl) {
-        errorsEl.innerHTML = '<tr><td colspan="6">加载失败，请稍后再试</td></tr>';
-      }
-    });
+    await loadDashboard();
   } catch {
     loginMessage.textContent = "网络响应较慢，请检查网络后再试。";
   } finally {
-    setButtonBusy(loginForm.querySelector("button[type='submit']"), false);
+    setButtonBusy(submitButton, false);
   }
 });
 
@@ -383,7 +419,9 @@ configForm?.addEventListener("submit", async (event) => {
   configMessage.textContent = "正在保存配置...";
 
   const payload = Object.fromEntries(new FormData(configForm).entries());
-  for (const key of ["deepseekApiKey", "resendApiKey"]) {
+  payload.maintenanceEnabled = configForm.elements.maintenanceEnabled.checked;
+
+  for (const key of ["deepseekApiKey", "maimemoToken", "resendApiKey", "adminPassword"]) {
     if (!payload[key]) {
       delete payload[key];
     }
@@ -402,10 +440,14 @@ configForm?.addEventListener("submit", async (event) => {
       throw new Error(data.error || "config_failed");
     }
 
-    configForm.deepseekApiKey.value = "";
-    configForm.resendApiKey.value = "";
+    for (const key of ["deepseekApiKey", "maimemoToken", "resendApiKey", "adminPassword"]) {
+      if (configForm.elements[key]) {
+        configForm.elements[key].value = "";
+      }
+    }
+
     renderConfig(data.config || {});
-    configMessage.textContent = "配置已保存，后续请求会优先使用后台配置。";
+    configMessage.textContent = "配置已保存。";
   } catch {
     configMessage.textContent = "保存失败，请稍后再试。";
   } finally {
@@ -428,7 +470,7 @@ balanceButton?.addEventListener("click", async () => {
     const balances = data.balance?.balance_infos || [];
     const summary = balances
       .map((item) => `${item.currency || "CNY"} ${item.total_balance || item.granted_balance || "0"}`)
-      .join("；");
+      .join("，");
     configMessage.textContent = `DeepSeek 余额：${summary || "接口返回为空"}`;
   } catch {
     configMessage.textContent = "余额查询失败，请检查 DeepSeek Token 或 Base URL。";

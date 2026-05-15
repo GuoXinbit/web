@@ -1,3 +1,5 @@
+import { getProviderConfig } from "./site-config.js";
+
 export function json(data, init = {}) {
   return new Response(JSON.stringify(data), {
     ...init,
@@ -36,14 +38,17 @@ export async function isEnglishAuthorized(request, env) {
 }
 
 export async function maimemoPost(env, path, body = {}) {
-  if (!env.MAIMEMO_TOKEN) {
+  const provider = await getProviderConfig(env);
+  const token = provider.maimemoToken || env.MAIMEMO_TOKEN || "";
+
+  if (!token) {
     throw new Error("missing_maimemo_token");
   }
 
   const response = await fetch(`https://open.maimemo.com/open/api/v1${path}`, {
     method: "POST",
     headers: {
-      authorization: `Bearer ${env.MAIMEMO_TOKEN}`,
+      authorization: `Bearer ${token}`,
       "content-type": "application/json",
     },
     body: JSON.stringify(body),

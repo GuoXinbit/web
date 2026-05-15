@@ -9,6 +9,20 @@ function json(data, init = {}) {
   });
 }
 
+function clean(value, max = 120) {
+  return String(value || "").trim().slice(0, max);
+}
+
+function getGeo(request) {
+  const cf = request.cf || {};
+  return {
+    country: clean(cf.country, 80),
+    region: clean(cf.region, 120),
+    city: clean(cf.city, 120),
+    timezone: clean(cf.timezone, 120),
+  };
+}
+
 export async function onRequestPost({ request, env }) {
   if (!env.STATS) {
     return json({ ok: false, error: "missing_stats_binding" }, { status: 500 });
@@ -51,6 +65,7 @@ export async function onRequestPost({ request, env }) {
     filename: `${id}.${extension}`,
     createdAt,
     ip,
+    geo: getGeo(request),
     size: audio.size,
     type: contentType,
     startedAt: String(formData.get("startedAt") || ""),

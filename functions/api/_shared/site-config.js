@@ -38,7 +38,12 @@ export async function writeSiteConfig(env, updates = {}) {
       continue;
     }
 
-    next[key] = clean(value, key.includes("Token") || key.includes("Key") ? 3000 : 500);
+    if (typeof value === "boolean") {
+      next[key] = value;
+      continue;
+    }
+
+    next[key] = clean(value, key.includes("Token") || key.includes("Key") || key.includes("Password") ? 3000 : 500);
   }
 
   await env.STATS.put(CONFIG_KEY, JSON.stringify(next));
@@ -56,6 +61,7 @@ export async function getProviderConfig(env) {
     deepseekThinkingModel: config.deepseekThinkingModel || env.DEEPSEEK_THINKING_MODEL || "deepseek-v4-pro",
     deepseekFinalModel: config.deepseekFinalModel || env.DEEPSEEK_FINAL_MODEL || "deepseek-v4-flash",
     deepseekTranslateModel: config.deepseekTranslateModel || env.DEEPSEEK_TRANSLATE_MODEL || "deepseek-v4-flash",
+    maimemoToken: config.maimemoToken || env.MAIMEMO_TOKEN || "",
     resendApiKey: config.resendApiKey || env.RESEND_API_KEY || "",
     errorAlertFrom: config.errorAlertFrom || env.ERROR_ALERT_FROM || "",
     errorAlertTo: config.errorAlertTo || env.ERROR_ALERT_TO || "",
@@ -76,9 +82,14 @@ export async function getPublicSiteConfig(env) {
     deepseekTranslateModel: provider.deepseekTranslateModel,
     deepseekApiKeySet: Boolean(provider.deepseekApiKey),
     deepseekApiKeyMasked: maskSecret(provider.deepseekApiKey),
+    maimemoTokenSet: Boolean(provider.maimemoToken),
+    maimemoTokenMasked: maskSecret(provider.maimemoToken),
     errorAlertFrom: provider.errorAlertFrom,
     errorAlertTo: provider.errorAlertTo,
     resendApiKeySet: Boolean(provider.resendApiKey),
     resendApiKeyMasked: maskSecret(provider.resendApiKey),
+    maintenanceEnabled: Boolean(config.maintenanceEnabled),
+    maintenanceMessage: config.maintenanceMessage || "网站维护中，请稍后再访问。",
+    adminPasswordManaged: Boolean(config.adminPasswordHash),
   };
 }

@@ -16,14 +16,59 @@ function getCookie(request, name) {
   return match ? decodeURIComponent(match.slice(name.length + 1)) : "";
 }
 
-async function sha256(value) {
+export async function sha256(value) {
   const data = new TextEncoder().encode(value);
   const digest = await crypto.subtle.digest("SHA-256", data);
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+async function readConfig(env) {
+  if (!env.STATS) {
+    return {};
+  }
+
+  return (await env.STATS.get("site-config", "json")) || {};
+}
+
+async function getAdminSecret(env) {
+  const config = await readConfig(env);
+  return config.adminPasswordHash || env.ADMIN_PASSWORD || "";
+}
+
+export async function hashAdminPassword(password) {
+  const salt = crypto.randomUUID();
+  return {
+    adminPasswordSalt: salt,
+    adminPasswordHash: await sha256(`${salt}.${password}`),
+  };
+}
+
+export async function verifyAdminPassword(env, password) {
+  const config = await readConfig(env);
+
+  if (config.adminPasswordHash && config.adminPasswordSalt) {
+    return (await sha256(`${config.adminPasswordSalt}.${password}`)) === config.adminPasswordHash;
+  }
+
+  return Boolean(env.ADMIN_PASSWORD) && password === env.ADMIN_PASSWORD;
+}
+
+export async function createAdminSession(env) {
+  const secret = await getAdminSecret(env);
+
+  if (!secret) {
+    return "";
+  }
+
+  const expires = Date.now() + 1000 * 60 * 60 * 8;
+  const signature = await sha256(`${expires}.${secret}`);
+  return `${expires}.${signature}`;
+}
+
 export async function isAdminAuthorized(request, env) {
-  if (!env.ADMIN_PASSWORD) {
+  const secret = await getAdminSecret(env);
+
+  if (!secret) {
     return false;
   }
 
@@ -34,6 +79,6 @@ export async function isAdminAuthorized(request, env) {
     return false;
   }
 
-  const expected = await sha256(`${expires}.${env.ADMIN_PASSWORD}`);
+  const expected = await sha256(`${expires}.${secret}`);
   return signature === expected;
 }

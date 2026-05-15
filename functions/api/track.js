@@ -23,6 +23,16 @@ function detectDevice(userAgent) {
   return "desktop";
 }
 
+function getGeo(request) {
+  const cf = request.cf || {};
+  return {
+    country: String(cf.country || "").slice(0, 80),
+    region: String(cf.region || "").slice(0, 120),
+    city: String(cf.city || "").slice(0, 120),
+    timezone: String(cf.timezone || "").slice(0, 120),
+  };
+}
+
 export async function onRequestPost({ request, env }) {
   if (!env.STATS) {
     return json({ ok: false, error: "missing_stats_binding" }, { status: 500 });
@@ -53,6 +63,7 @@ export async function onRequestPost({ request, env }) {
     timezone: String(payload.timezone || "").slice(0, 120),
     screen: payload.screen || null,
     device: detectDevice(userAgent),
+    geo: getGeo(request),
     userAgent: userAgent.slice(0, 500),
   };
 

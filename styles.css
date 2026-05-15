@@ -44,14 +44,16 @@ a {
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
-select:focus-visible {
+select:focus-visible,
+textarea:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 3px;
 }
 
 button,
 input,
-select {
+select,
+textarea {
   min-width: 0;
   font: inherit;
 }
@@ -462,7 +464,11 @@ input[type="range"] {
 }
 
 select,
-input[type="password"] {
+textarea,
+input[type="password"],
+input[type="text"],
+input[type="email"],
+input[type="url"] {
   width: 100%;
   min-height: 42px;
   border: 1px solid var(--line);
@@ -470,6 +476,12 @@ input[type="password"] {
   background: var(--panel-strong);
   color: var(--ink);
   padding: 0 12px;
+}
+
+textarea {
+  min-height: 88px;
+  padding: 12px;
+  resize: vertical;
 }
 
 .notice,
@@ -611,7 +623,8 @@ input[type="password"] {
   font-size: 0.9rem;
 }
 
-.config-form input {
+.config-form input,
+.config-form textarea {
   width: 100%;
   min-height: 42px;
   border: 1px solid var(--line);
@@ -619,6 +632,31 @@ input[type="password"] {
   background: var(--panel-strong);
   color: var(--ink);
   padding: 0 12px;
+}
+
+.config-form textarea {
+  min-height: 88px;
+  padding: 12px;
+}
+
+.full-field {
+  grid-column: 1 / -1;
+}
+
+.toggle-row {
+  align-content: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 74px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-strong);
+  padding: 12px;
+}
+
+.toggle-row input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--primary);
 }
 
 .config-actions {
@@ -703,6 +741,60 @@ code {
   color: var(--ink);
   padding: 0 10px;
   cursor: pointer;
+}
+
+.feedback-widget {
+  position: fixed;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 30;
+}
+
+.feedback-trigger {
+  min-width: 58px;
+  min-height: 44px;
+  border: 1px solid rgba(51, 208, 162, 0.5);
+  border-radius: 999px;
+  background: rgba(20, 25, 32, 0.94);
+  color: var(--primary);
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.feedback-panel {
+  position: absolute;
+  right: 0;
+  bottom: 56px;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 28px));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(20, 25, 32, 0.98);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.42);
+  padding: 14px;
+}
+
+.feedback-panel > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.feedback-panel > div button {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--panel-strong);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.feedback-panel input,
+.feedback-panel textarea {
+  background: #0d1116;
 }
 
 .english-body {
