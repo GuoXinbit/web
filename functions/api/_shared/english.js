@@ -37,8 +37,8 @@ export async function isEnglishAuthorized(request, env) {
   return signature === expected;
 }
 
-export async function maimemoPost(env, path, body = {}) {
-  const provider = await getProviderConfig(env);
+export async function maimemoPost(env, path, body = {}, providerOverride = null) {
+  const provider = providerOverride || await getProviderConfig(env);
   const token = provider.maimemoToken || env.MAIMEMO_TOKEN || "";
 
   if (!token) {
@@ -64,6 +64,8 @@ export async function maimemoPost(env, path, body = {}) {
 }
 
 export async function getTodayLearningData(env) {
+  const provider = await getProviderConfig(env);
+  const tokenFingerprint = await sha256(provider.maimemoToken || env.MAIMEMO_TOKEN || "");
   const todayKey = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Shanghai",
     year: "numeric",
@@ -74,15 +76,19 @@ export async function getTodayLearningData(env) {
   if (env.STATS) {
     const cached = await env.STATS.get("english-today-cache", "json");
 
-    if (cached?.date === todayKey && Date.now() - Number(cached.cachedAt || 0) < 1000 * 60 * 20) {
+    if (
+      cached?.date === todayKey &&
+      cached.tokenFingerprint === tokenFingerprint &&
+      Date.now() - Number(cached.cachedAt || 0) < 1000 * 60 * 20
+    ) {
       return cached.data;
     }
   }
 
-  const progressData = await maimemoPost(env, "/study/get_study_progress");
+  const progressData = await maimemoPost(env, "/study/get_study_progress", {}, provider);
   const progress = progressData.progress || {};
   const total = Math.max(1, Math.min(Number(progress.total || 700), 1000));
-  const todayData = await maimemoPost(env, "/study/get_today_items", { limit: total });
+  const todayData = await maimemoPost(env, "/study/get_today_items", { limit: total }, provider);
   const todayItems = todayData.today_items || [];
   const finishedItems = todayItems.filter((item) => item.is_finished === true);
   const unfamiliarItems = finishedItems.filter((item) => item.first_response !== "FAMILIAR");
@@ -122,6 +128,7 @@ export async function getTodayLearningData(env) {
     await env.STATS.put("english-today-cache", JSON.stringify({
       date: todayKey,
       cachedAt: Date.now(),
+      tokenFingerprint,
       data: result,
     }));
   }

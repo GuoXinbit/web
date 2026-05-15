@@ -18,6 +18,7 @@ const configForm = document.querySelector("[data-config-form]");
 const configMessage = document.querySelector("[data-config-message]");
 const configSummary = document.querySelector("[data-config-summary]");
 const balanceButton = document.querySelector("[data-check-balance]");
+const restoreButton = document.querySelector("[data-restore-defaults]");
 
 const pageSize = 25;
 const state = {
@@ -476,6 +477,42 @@ balanceButton?.addEventListener("click", async () => {
     configMessage.textContent = "余额查询失败，请检查 DeepSeek Token 或 Base URL。";
   } finally {
     setButtonBusy(balanceButton, false);
+  }
+});
+
+restoreButton?.addEventListener("click", async () => {
+  const confirmed = window.confirm("确定一键恢复默认配置吗？这会清除后台保存的 API Token、后台密码覆盖配置、维护模式和今日学习缓存，恢复使用 Cloudflare 环境变量。");
+
+  if (!confirmed) {
+    return;
+  }
+
+  setButtonBusy(restoreButton, true, "恢复中...");
+  configMessage.textContent = "正在恢复默认配置...";
+
+  try {
+    const response = await fetch("/api/admin-restore", {
+      method: "POST",
+      credentials: "include",
+    });
+    const data = await response.json();
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || "restore_failed");
+    }
+
+    for (const key of ["deepseekApiKey", "maimemoToken", "resendApiKey", "adminPassword"]) {
+      if (configForm.elements[key]) {
+        configForm.elements[key].value = "";
+      }
+    }
+
+    renderConfig(data.config || {});
+    configMessage.textContent = data.message || "已恢复默认配置。";
+  } catch {
+    configMessage.textContent = "恢复失败，请稍后再试。";
+  } finally {
+    setButtonBusy(restoreButton, false);
   }
 });
 

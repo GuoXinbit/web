@@ -50,6 +50,18 @@ export async function writeSiteConfig(env, updates = {}) {
   return next;
 }
 
+export async function resetSiteConfig(env) {
+  if (!env.STATS) {
+    return {};
+  }
+
+  await Promise.all([
+    env.STATS.delete(CONFIG_KEY),
+    env.STATS.delete("english-today-cache"),
+  ]);
+  return {};
+}
+
 export async function getProviderConfig(env) {
   const config = await readSiteConfig(env);
 

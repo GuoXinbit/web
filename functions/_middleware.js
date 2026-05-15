@@ -11,6 +11,7 @@ function isAllowedDuringMaintenance(pathname) {
     pathname.startsWith("/api/login") ||
     pathname.startsWith("/api/stats") ||
     pathname.startsWith("/api/admin-config") ||
+    pathname.startsWith("/api/admin-restore") ||
     pathname.startsWith("/api/deepseek-balance") ||
     pathname.startsWith("/api/error-report") ||
     pathname.startsWith("/api/feedback")

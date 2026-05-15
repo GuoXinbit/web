@@ -54,6 +54,9 @@ export async function onRequestPost({ request, env }) {
   }
 
   await writeSiteConfig(env, updates);
+  if (Object.hasOwn(updates, "maimemoToken")) {
+    await env.STATS?.delete("english-today-cache");
+  }
 
   const headers = {};
   if (passwordChanged) {
