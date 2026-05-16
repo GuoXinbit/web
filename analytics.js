@@ -105,8 +105,19 @@
   window.fetch = async (...args) => {
     const response = await nativeFetch(...args);
     const url = String(args[0]?.url || args[0] || "");
+    const pathname = (() => {
+      try {
+        return new URL(url, location.origin).pathname;
+      } catch {
+        return url;
+      }
+    })();
+    const expectedClientStatus =
+      (response.status === 401 && pathname === "/api/english/latest") ||
+      (response.status === 429 && pathname === "/api/english/generate");
     const shouldReport =
       !response.ok &&
+      !expectedClientStatus &&
       url.startsWith("/") &&
       !url.startsWith("/api/track") &&
       !url.startsWith("/api/error-report");
